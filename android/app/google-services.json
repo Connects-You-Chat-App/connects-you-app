@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1029283828579",
+    "project_id": "connects-you-ca764",
+    "storage_bucket": "connects-you-ca764.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1029283828579:android:b8bcde4bc769cf5fbb3956",
+        "android_client_info": {
+          "package_name": "com.adarsh.connects_you"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1029283828579-sckj0g5cnsqs21n3k75o7juc90e6oaj1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJGF__nRv3g_VRAlO91PDaP5PWyuQYrUw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1029283828579-sckj0g5cnsqs21n3k75o7juc90e6oaj1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
