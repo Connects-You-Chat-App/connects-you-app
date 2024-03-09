@@ -1,43 +1,52 @@
-import 'package:connects_you/constants/hive_box_keys.dart';
-import 'package:connects_you/controllers/auth_controller.dart';
-import 'package:connects_you/models/base/user.dart';
-import 'package:connects_you/models/common/shared_key.dart';
-import 'package:connects_you/models/objects/shared_key_hive_object.dart';
-import 'package:connects_you/service/server.dart';
+import 'dart:developer';
+
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:flutter_cryptography/diffie_hellman.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
+import '../constants/hive_box_keys.dart';
+import '../controllers/auth_controller.dart';
+import '../models/base/user.dart';
+import '../models/common/current_user.dart';
+import '../models/common/shared_key.dart';
+import '../models/objects/shared_key_hive_object.dart';
+import '../service/server.dart';
+
 class SharedKeyResponse {
+  SharedKeyResponse({required this.key, required this.encryptedKey});
+
   final String key;
   final String encryptedKey;
-
-  SharedKeyResponse({required this.key, required this.encryptedKey});
 }
 
 class UserWiseSharedKeyResponse {
+  UserWiseSharedKeyResponse({required this.userId, required this.sharedKey});
+
   final String userId;
   final String sharedKey;
-
-  UserWiseSharedKeyResponse({required this.userId, required this.sharedKey});
 }
 
-Future<SharedKeyResponse> generateEncryptedSharedKey(
-    String otherUserPublicKey) async {
-  final authController = Get.find<AuthController>();
-  final user = authController.authenticatedUser!;
-  final privateKey = user.privateKey;
-  final publicKey = user.publicKey;
+Future<SharedKeyResponse?> generateEncryptedSharedKey(
+    final String otherUserPublicKey) async {
+  final AuthController authController = Get.find<AuthController>();
+  final CurrentUser user = authController.authenticatedUser!;
+  final String? privateKey = user.privateKey;
+  final String publicKey = user.publicKey;
 
-  final dh = DiffieHellman();
+  if (user.publicKey.hashCode == otherUserPublicKey.hashCode) {
+    return null;
+  }
+
+  final DiffieHellman dh = DiffieHellman();
   dh.alicePrivateKey = privateKey;
   dh.alicePublicKey = publicKey;
 
-  final sharedKey =
+  final String sharedKey =
       await dh.calculateSharedKey(bobPublicKey: otherUserPublicKey);
-  final commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
-  final userKey = await commonBox.get("USER_KEY");
+  final LazyBox<dynamic> commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
+  final String userKey = await commonBox.get('USER_KEY')
+      as String; // TODO: add user key in current user object and use it instead of this
 
   return SharedKeyResponse(
     key: sharedKey,
@@ -47,42 +56,63 @@ Future<SharedKeyResponse> generateEncryptedSharedKey(
 }
 
 Future<List<UserWiseSharedKeyResponse>> getSharedKeyWithOtherUsers(
-    List<User> users) async {
-  final sharedKeyBox =
-      Hive.lazyBox<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
-  final sharedKeys = <UserWiseSharedKeyResponse>[];
-  final remainingUsers = <User>[];
+    final List<User> users,
+    {final bool force = false}) async {
+  final Box<SharedKeyHiveObject> sharedKeyBox =
+      Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
+  final List<UserWiseSharedKeyResponse> sharedKeys =
+      <UserWiseSharedKeyResponse>[];
+  List<User> remainingUsers = <User>[];
 
-  await Future.wait(users.map((user) async {
-    final sharedKey = await sharedKeyBox.get(user.id);
-    if (sharedKey != null) {
-      sharedKeys.add(UserWiseSharedKeyResponse(
-        userId: user.id,
-        sharedKey: sharedKey.key,
-      ));
-    } else {
-      remainingUsers.add(user);
+  if (!force) {
+    await Future.wait(users.map((final User user) async {
+      final SharedKeyHiveObject? sharedKey = sharedKeyBox.get(user.id);
+      if (sharedKey != null) {
+        sharedKeys.add(UserWiseSharedKeyResponse(
+          userId: user.id,
+          sharedKey: sharedKey.sharedKey,
+        ));
+      } else {
+        remainingUsers.add(user);
+      }
+    }));
+  } else {
+    remainingUsers = users;
+  }
+
+  final List<SharedKey> sharedKeysToSave = <SharedKey>[];
+
+  await Future.wait(remainingUsers.map((final User user) async {
+    final SharedKeyResponse? encryptedSharedKey =
+        await generateEncryptedSharedKey(user.publicKey);
+    if (encryptedSharedKey == null) {
+      log('Shared key is null');
+      return;
     }
-  }));
-
-  final sharedKeysToSave = <SharedKey>[];
-
-  await Future.wait(remainingUsers.map((user) async {
-    final encryptedSharedKey = await generateEncryptedSharedKey(user.publicKey);
     await sharedKeyBox.put(
       user.id,
-      SharedKeyHiveObject(key: encryptedSharedKey.key, forUserId: user.id),
+      SharedKeyHiveObject(
+        sharedKey: encryptedSharedKey.key,
+        forUserId: user.id,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
     );
-    sharedKeysToSave.add(
-      SharedKey(key: encryptedSharedKey.encryptedKey, forUserId: user.id),
-    );
+    sharedKeysToSave.add(SharedKey(
+      key: encryptedSharedKey.encryptedKey,
+      forUserId: user.id,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ));
     sharedKeys.add(UserWiseSharedKeyResponse(
       userId: user.id,
       sharedKey: encryptedSharedKey.key,
     ));
   }));
 
-  await ServerApi.sharedKeyService.saveKeys(sharedKeysToSave);
+  if (sharedKeysToSave.isNotEmpty) {
+    await ServerApi.sharedKeyService.saveKeys(sharedKeysToSave);
+  }
 
   return sharedKeys;
 }

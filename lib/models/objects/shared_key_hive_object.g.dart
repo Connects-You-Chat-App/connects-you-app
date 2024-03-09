@@ -8,7 +8,7 @@ part of 'shared_key_hive_object.dart';
 
 class SharedKeyHiveObjectAdapter extends TypeAdapter<SharedKeyHiveObject> {
   @override
-  final int typeId = 1;
+  final int typeId = 4;
 
   @override
   SharedKeyHiveObject read(BinaryReader reader) {
@@ -17,7 +17,9 @@ class SharedKeyHiveObjectAdapter extends TypeAdapter<SharedKeyHiveObject> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return SharedKeyHiveObject(
-      key: fields[0] as String,
+      sharedKey: fields[0] as String,
+      createdAt: fields[3] as DateTime,
+      updatedAt: fields[4] as DateTime,
       forUserId: fields[1] as String?,
       forRoomId: fields[2] as String?,
     );
@@ -26,13 +28,17 @@ class SharedKeyHiveObjectAdapter extends TypeAdapter<SharedKeyHiveObject> {
   @override
   void write(BinaryWriter writer, SharedKeyHiveObject obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(5)
       ..writeByte(0)
-      ..write(obj.key)
+      ..write(obj.sharedKey)
       ..writeByte(1)
       ..write(obj.forUserId)
       ..writeByte(2)
-      ..write(obj.forRoomId);
+      ..write(obj.forRoomId)
+      ..writeByte(3)
+      ..write(obj.createdAt)
+      ..writeByte(4)
+      ..write(obj.updatedAt);
   }
 
   @override

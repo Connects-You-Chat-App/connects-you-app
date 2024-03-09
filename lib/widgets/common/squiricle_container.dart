@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 class SquircleContainer extends StatelessWidget {
-  final Widget? child;
 
   const SquircleContainer({super.key, this.child});
+  final Widget? child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return DecoratedBox(
       decoration: ShapeDecoration(
         shape: ContinuousRectangleBorder(

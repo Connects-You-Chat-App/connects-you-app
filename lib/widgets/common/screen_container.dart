@@ -1,17 +1,12 @@
 import 'dart:io';
 
-import 'package:connects_you/controllers/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/settings_controller.dart';
+
 class ScreenContainer extends GetView<SettingController> {
-  final Widget child;
-  final Color? statusBarColor;
-  final Color? navigationBarColor;
-  final Brightness? statusBarBrightness;
-  final Brightness? statusBarIconBrightness;
-  final Brightness? navigationBarIconBrightness;
 
   const ScreenContainer({
     required this.child,
@@ -22,12 +17,18 @@ class ScreenContainer extends GetView<SettingController> {
     this.navigationBarIconBrightness,
     super.key,
   });
+  final Widget child;
+  final Color? statusBarColor;
+  final Color? navigationBarColor;
+  final Brightness? statusBarBrightness;
+  final Brightness? statusBarIconBrightness;
+  final Brightness? navigationBarIconBrightness;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (Platform.isAndroid) {
-      final theme = Theme.of(context);
-      final oppositeBrightness = theme.brightness == Brightness.light
+      final ThemeData theme = Theme.of(context);
+      final Brightness oppositeBrightness = theme.brightness == Brightness.light
           ? Brightness.dark
           : Brightness.light;
       final SystemUiOverlayStyle overLayStyle = SystemUiOverlayStyle(

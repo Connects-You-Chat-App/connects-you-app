@@ -1,8 +1,6 @@
-// ignore_for_file: constant_identifier_names
-
 enum RoomType {
-  DUET("DUET"),
-  GROUP("GROUP");
+  DUET('DUET'),
+  GROUP('GROUP');
 
   const RoomType(this.value);
 
@@ -11,7 +9,7 @@ enum RoomType {
   @override
   String toString() => value;
 
-  static RoomType fromString(String value) {
+  static RoomType fromString(final String value) {
     switch (value) {
       case 'DUET':
         return DUET;
@@ -24,11 +22,11 @@ enum RoomType {
 }
 
 enum RoomUserRole {
-  DUET_CREATOR("DUET_CREATOR"),
-  DUET_NORMAL("DUET_NORMAL"),
-  GROUP_CREATOR("GROUP_CREATOR"),
-  GROUP_ADMIN("GROUP_ADMIN"),
-  GROUP_NORMAL("GROUP_NORMAL");
+  DUET_CREATOR('DUET_CREATOR'),
+  DUET_NORMAL('DUET_NORMAL'),
+  GROUP_CREATOR('GROUP_CREATOR'),
+  GROUP_ADMIN('GROUP_ADMIN'),
+  GROUP_NORMAL('GROUP_NORMAL');
 
   const RoomUserRole(this.value);
 
@@ -37,7 +35,7 @@ enum RoomUserRole {
   @override
   String toString() => value;
 
-  static RoomUserRole fromString(String value) {
+  static RoomUserRole fromString(final String value) {
     switch (value) {
       case 'DUET_CREATOR':
         return DUET_CREATOR;

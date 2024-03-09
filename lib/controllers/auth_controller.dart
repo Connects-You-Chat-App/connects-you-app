@@ -1,25 +1,5 @@
 import 'dart:async';
 
-import 'package:connects_you/configs/google.dart';
-import 'package:connects_you/constants/hive_box_keys.dart';
-import 'package:connects_you/controllers/root_controller.dart';
-import 'package:connects_you/controllers/socket_controller.dart';
-import 'package:connects_you/models/common/current_user.dart';
-import 'package:connects_you/models/common/device_info.dart';
-import 'package:connects_you/models/common/shared_key.dart';
-import 'package:connects_you/models/objects/current_user_hive_object.dart';
-import 'package:connects_you/models/objects/shared_key_hive_object.dart';
-import 'package:connects_you/models/requests/authentication_request.dart';
-import 'package:connects_you/models/requests/save_user_keys_request.dart';
-import 'package:connects_you/models/responses/authentication_response.dart';
-import 'package:connects_you/models/responses/main.dart' show Response;
-import 'package:connects_you/service/server.dart';
-import 'package:connects_you/utils/custom_exception.dart';
-import 'package:connects_you/utils/device_info.dart';
-import 'package:connects_you/utils/g_drive.dart';
-import 'package:connects_you/utils/secure_storage.dart';
-import 'package:connects_you/widgets/screens/home/home_screen.dart';
-import 'package:connects_you/widgets/screens/splash/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
@@ -30,7 +10,29 @@ import 'package:get/get.dart' hide Response;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive/hive.dart';
 
-class AuthStatesMessages {
+import '../configs/google.dart';
+import '../constants/hive_box_keys.dart';
+import '../models/common/current_user.dart';
+import '../models/common/device_info.dart';
+import '../models/common/shared_key.dart';
+import '../models/objects/current_user_hive_object.dart';
+import '../models/objects/shared_key_hive_object.dart';
+import '../models/requests/authentication_request.dart';
+import '../models/requests/save_user_keys_request.dart';
+import '../models/responses/authentication_response.dart';
+import '../models/responses/main.dart' show Response;
+import '../service/server.dart';
+import '../utils/cache_management.dart';
+import '../utils/custom_exception.dart';
+import '../utils/device_info.dart';
+import '../utils/g_drive.dart';
+import '../utils/secure_storage.dart';
+import '../widgets/screens/home/home_screen.dart';
+import '../widgets/screens/splash/splash_screen.dart';
+import 'root_controller.dart';
+import 'socket_controller.dart';
+
+class _AuthStatesMessages {
   static const String fetchingYourPrevSession =
       'Fetching Your Previous Session';
   static const String sessionRetrieved = 'Session Retrieved';
@@ -73,20 +75,20 @@ class AuthController extends GetxController {
   late final FirebaseAuth _auth;
 
   late final LazyBox<CurrentUserHiveObject> _currentUserBox;
-  late final LazyBox<SharedKeyHiveObject> _sharedKeyBox;
+  late final Box<SharedKeyHiveObject> _sharedKeyBox;
 
   late final LazyBox _commonBox;
 
   late SocketController _socketController;
 
   @override
-  void onInit() async {
+  Future<void> onInit() async {
     await Get.find<RootController>().initializeApp();
     _currentUserBox = Hive.lazyBox<CurrentUserHiveObject>(
       HiveBoxKeys.CURRENT_USER,
     );
     _commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
-    _sharedKeyBox = Hive.lazyBox<SharedKeyHiveObject>(
+    _sharedKeyBox = Hive.box<SharedKeyHiveObject>(
       HiveBoxKeys.SHARED_KEY,
     );
     _googleSignIn = GoogleSignIn(
@@ -100,18 +102,20 @@ class AuthController extends GetxController {
 
   void afterAuthenticated() {
     _socketController.initializeSocket(_authenticatedUser.value!.token);
-    Get.offAllNamed(HomeScreen.routeName);
+    Get.offAllNamed<void>(HomeScreen.routeName);
   }
 
-  Future _fetchAndSetAuthUser() async {
+  Future<void> _fetchAndSetAuthUser() async {
     try {
-      final currentUser = await _currentUserBox.get("CURRENT_USER");
+      final CurrentUserHiveObject? currentUser =
+          await _currentUserBox.get('CURRENT_USER');
       if (currentUser == null) {
         throw const CustomException(errorMessage: 'currentUser is null');
       }
       _authenticatedUser.value = currentUser.toCurrentUser();
       await Future.delayed(const Duration(seconds: 1));
       afterAuthenticated();
+      const CacheManagement().initializeCache();
     } catch (error) {
       await SecureStorage.deleteAll();
     }
@@ -122,14 +126,16 @@ class AuthController extends GetxController {
     return _authenticatedUser.value?.token != null;
   }
 
-  Future _onLogin(CurrentUser user) async {
-    if (user.publicKey == null || user.privateKey == null) {
+  Future _onLogin(final CurrentUser user) async {
+    if (user.publicKey.isEmpty ||
+        user.privateKey == null ||
+        user.privateKey!.isEmpty) {
       throw const CustomException(
           errorMessage: 'publicKey or privateKey is null');
     }
-    final userDriveResponse = await GDriveOps.getUserKey();
-    _authStateMessage.value = AuthStatesMessages.fetchingAndSavingYourPrevData;
-    final decryptedPrivateKey = await AesGcmEncryption(
+    final String userDriveResponse = await GDriveOps.getUserKey();
+    _authStateMessage.value = _AuthStatesMessages.fetchingAndSavingYourPrevData;
+    final String decryptedPrivateKey = await AesGcmEncryption(
       secretKey: userDriveResponse,
     ).decryptString(user.privateKey!);
 
@@ -143,23 +149,39 @@ class AuthController extends GetxController {
       token: user.token,
     );
 
-    final [_, _, keys as Response<List<SharedKey>>] = await Future.wait([
-      _currentUserBox.put("CURRENT_USER",
+    final [_, _, Response<List<SharedKey>> keys as Response<List<SharedKey>>] =
+        await Future.wait(<Future<Object?>>[
+      _currentUserBox.put('CURRENT_USER',
           CurrentUserHiveObject.fromCurrentUser(_authenticatedUser.value!)),
       _commonBox.put('USER_KEY', userDriveResponse),
       ServerApi.sharedKeyService.getKeys(),
     ]);
 
-    await Future.wait(keys.response.map((key) => _sharedKeyBox.put(
+    await Future.wait(keys.response.map((final SharedKey key) async {
+      final String decryptedKey = await AesGcmEncryption(
+        secretKey: userDriveResponse,
+      ).decryptString(key.key);
+
+      return _sharedKeyBox.put(
         key.forUserId ?? key.forRoomId,
-        SharedKeyHiveObject.fromSharedKey(key))));
+        SharedKeyHiveObject.fromSharedKey(
+          SharedKey(
+              key: decryptedKey,
+              forUserId: key.forUserId,
+              forRoomId: key.forRoomId,
+              createdAt: key.createdAt,
+              updatedAt: key.updatedAt),
+        ),
+      );
+    }));
   }
 
-  Future _onSignup(CurrentUser user) async {
-    _authStateMessage.value = AuthStatesMessages.savingYourDetails;
-    final dh = DiffieHellman();
+  Future _onSignup(final CurrentUser user) async {
+    _authStateMessage.value = _AuthStatesMessages.savingYourDetails;
+    final DiffieHellman dh = DiffieHellman();
     await dh.generateKeyPair();
-    final userSecretKey = (randomUUID() + randomUUID()).replaceAll('-', '');
+    final String userSecretKey =
+        (randomUUID() + randomUUID()).replaceAll('-', '');
     final String? privateKey = dh.alicePrivateKey;
     final String? publicKey = dh.alicePublicKey;
 
@@ -168,10 +190,11 @@ class AuthController extends GetxController {
           errorMessage: 'privateKey or publicKey is null');
     }
 
-    final encryptedPrivateKey = await AesGcmEncryption(secretKey: userSecretKey)
-        .encryptString(privateKey);
+    final String encryptedPrivateKey =
+        await AesGcmEncryption(secretKey: userSecretKey)
+            .encryptString(privateKey);
 
-    _authStateMessage.value = AuthStatesMessages.savingDriveKeys;
+    _authStateMessage.value = _AuthStatesMessages.savingDriveKeys;
     _authenticatedUser.value = CurrentUser(
       id: user.id,
       name: user.name,
@@ -182,8 +205,8 @@ class AuthController extends GetxController {
       token: user.token,
     );
 
-    await Future.wait([
-      _currentUserBox.put("CURRENT_USER",
+    await Future.wait(<Future<void>>[
+      _currentUserBox.put('CURRENT_USER',
           CurrentUserHiveObject.fromCurrentUser(_authenticatedUser.value!)),
       ServerApi.authService.saveUserKeys(SaveUserKeysRequest(
         privateKey: encryptedPrivateKey,
@@ -197,23 +220,24 @@ class AuthController extends GetxController {
   }
 
   Future<String> _authenticateViaGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
       throw const CustomException(errorMessage: 'googleUser is null');
     }
-    final googleAuth = await googleUser.authentication;
-    final googleCredential = GoogleAuthProvider.credential(
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+    final OAuthCredential googleCredential = GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
-    final firebaseUser =
+    final User? firebaseUser =
         (await _auth.signInWithCredential(googleCredential)).user;
 
     if (firebaseUser == null) {
       throw const CustomException(errorMessage: 'firebaseUser is null');
     }
 
-    final idToken = await firebaseUser.getIdToken();
+    final String? idToken = await firebaseUser.getIdToken();
     if (idToken == null) {
       throw const CustomException(errorMessage: 'idToken is null');
     }
@@ -224,13 +248,16 @@ class AuthController extends GetxController {
   Future<AuthenticationResponse> authenticate() async {
     try {
       _authState.value = AuthStates.inProgress;
-      final [idToken as String, fcmToken as String, deviceInfo as DeviceInfo] =
-          await Future.wait([
+      final [
+        String idToken as String,
+        String fcmToken as String,
+        DeviceInfo deviceInfo as DeviceInfo
+      ] = await Future.wait(<Future<Object?>>[
         _authenticateViaGoogle(),
         FirebaseMessaging.instance.getToken(),
         getDeviceInfo()
       ]);
-      final serverAuthUser =
+      final Response<AuthenticationResponse>? serverAuthUser =
           await ServerApi.authService.authenticate(AuthenticationRequest(
         token: idToken,
         fcmToken: fcmToken,
@@ -245,23 +272,23 @@ class AuthController extends GetxController {
       }
 
       if (serverAuthUser.response.method == AuthMethod.login) {
-        _authStateMessage.value = AuthStatesMessages.authenticatingYou;
+        _authStateMessage.value = _AuthStatesMessages.authenticatingYou;
         await _onLogin(
           serverAuthUser.response.user,
         );
       } else if (serverAuthUser.response.method == AuthMethod.signup) {
-        _authStateMessage.value = AuthStatesMessages.creatingYourAccount;
+        _authStateMessage.value = _AuthStatesMessages.creatingYourAccount;
         await _onSignup(serverAuthUser.response.user);
       }
 
-      _authStateMessage.value = AuthStatesMessages.authCompleted;
+      _authStateMessage.value = _AuthStatesMessages.authCompleted;
       _authState.value = AuthStates.completed;
       afterAuthenticated();
       return serverAuthUser.response;
     } catch (error) {
       debugPrint(error.toString());
       _authenticatedUser.value = null;
-      _authStateMessage.value = AuthStatesMessages.authError;
+      _authStateMessage.value = _AuthStatesMessages.authError;
       _authState.value = AuthStates.completed;
       await _auth.signOut();
       await _googleSignIn.signOut();
@@ -273,7 +300,8 @@ class AuthController extends GetxController {
 
   Future<bool?> signOut() async {
     _authState.value = AuthStates.inProgress;
-    final signOutResponse = await ServerApi.authService.signOut();
+    final Response<bool>? signOutResponse =
+        await ServerApi.authService.signOut();
     await _currentUserBox.clear();
     await SecureStorage.deleteAll();
     _googleSignIn.signOut();
@@ -287,7 +315,7 @@ class AuthController extends GetxController {
   }
 
   Future<GoogleSignInAuthentication> refreshGoogleTokens() async {
-    final user = await _googleSignIn.signInSilently();
+    final GoogleSignInAccount? user = await _googleSignIn.signInSilently();
     if (user == null) {
       throw Exception('signin silently but user null');
     }

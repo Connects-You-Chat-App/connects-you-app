@@ -1,14 +1,14 @@
 class OtherUserEncryptedSharedKey {
-  final String userId;
-  final String encryptedRoomSecretKey;
-
   OtherUserEncryptedSharedKey({
     required this.userId,
     required this.encryptedRoomSecretKey,
   });
 
+  final String userId;
+  final String encryptedRoomSecretKey;
+
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'userId': userId,
       'encryptedRoomSecretKey': encryptedRoomSecretKey,
     };
@@ -16,28 +16,29 @@ class OtherUserEncryptedSharedKey {
 }
 
 class CreateGroupRoomRequest {
+  CreateGroupRoomRequest({
+    required this.selfEncryptedRoomSecretKey,
+    required this.otherUsersEncryptedRoomSecretKeys,
+    this.name,
+    this.description,
+    this.logoUrl,
+  });
+
   final String? name;
   final String? description;
   final String? logoUrl;
   final String selfEncryptedRoomSecretKey;
   final List<OtherUserEncryptedSharedKey> otherUsersEncryptedRoomSecretKeys;
 
-  CreateGroupRoomRequest({
-    this.name,
-    this.description,
-    this.logoUrl,
-    required this.selfEncryptedRoomSecretKey,
-    required this.otherUsersEncryptedRoomSecretKeys,
-  });
-
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'name': name,
       'description': description,
       'logoUrl': logoUrl,
       'selfEncryptedRoomSecretKey': selfEncryptedRoomSecretKey,
-      'otherUsersEncryptedRoomSecretKeys':
-          otherUsersEncryptedRoomSecretKeys.map((e) => e.toJson()).toList(),
+      'otherUsersEncryptedRoomSecretKeys': otherUsersEncryptedRoomSecretKeys
+          .map((final OtherUserEncryptedSharedKey e) => e.toJson())
+          .toList(),
     };
   }
 }

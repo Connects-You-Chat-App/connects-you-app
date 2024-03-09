@@ -1,16 +1,17 @@
-import 'package:connects_you/bindings/root_binding.dart';
-import 'package:connects_you/theme/app_theme.dart';
-import 'package:connects_you/widgets/screens/home/home_screen.dart';
-import 'package:connects_you/widgets/screens/room/room_screen.dart';
-import 'package:connects_you/widgets/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../../bindings/root_binding.dart';
+import '../../theme/app_theme.dart';
+import 'home/home_screen.dart';
+import 'room/room_screen.dart';
+import 'splash/splash_screen.dart';
 
 class Root extends StatelessWidget {
   const Root({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return GetMaterialApp(
       title: 'Connects You',
       defaultTransition: Transition.cupertino,
@@ -19,7 +20,7 @@ class Root extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.appThemeLight,
       darkTheme: AppTheme.appThemeDark,
-      getPages: [
+      getPages: <GetPage>[
         GetPage(
           name: SplashScreen.routeName,
           page: () => const SplashScreen(),
@@ -30,7 +31,7 @@ class Root extends StatelessWidget {
         ),
         GetPage(
           name: RoomScreen.routeName,
-          page: () => const RoomScreen(),
+          page: () => RoomScreen(),
         ),
       ],
     );

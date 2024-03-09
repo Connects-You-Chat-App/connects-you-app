@@ -1,17 +1,19 @@
-import 'package:connects_you/constants/locale.dart';
-import 'package:connects_you/controllers/inbox_controller.dart';
-import 'package:connects_you/enums/room.dart';
-import 'package:connects_you/widgets/common/avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class Rooms extends GetView<InboxController> {
+import '../../../../../constants/locale.dart';
+import '../../../../../controllers/room_controller.dart';
+import '../../../../../enums/room.dart';
+import '../../../../../models/common/rooms_with_room_users.dart';
+import '../../../../common/avatar.dart';
+
+class Rooms extends GetView<RoomController> {
   const Rooms({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () => controller.fetchRooms(true),
+      onRefresh: () => controller.fetchRooms(fromServer: true),
       triggerMode: RefreshIndicatorTriggerMode.anywhere,
       child: Obx(
         () => controller.rooms.isEmpty
@@ -20,7 +22,7 @@ class Rooms extends GetView<InboxController> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   child: Column(
-                    children: [
+                    children: <Widget>[
                       Image.asset(
                         'assets/images/logo.png',
                       ),
@@ -33,14 +35,15 @@ class Rooms extends GetView<InboxController> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 itemCount: controller.rooms.length,
-                itemBuilder: (context, index) {
-                  final room = controller.rooms[index];
+                itemBuilder: (final BuildContext context, final int index) {
+                  final RoomWithRoomUsers room = controller.rooms[index];
                   return ListTile(
+                    onTap: () => controller.redirectToRoom(index),
                     title: Text(room.name),
                     subtitle: Text(room.description ?? ''),
                     leading: Avatar(
                       photoUrl: room.logoUrl,
-                      firstLetter: room.name.isEmpty ? "" : room.name[0],
+                      firstLetter: room.name.isEmpty ? '' : room.name[0],
                       icon: room.type == RoomType.GROUP
                           ? const Icon(Icons.group)
                           : null,

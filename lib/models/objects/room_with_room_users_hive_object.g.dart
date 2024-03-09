@@ -21,17 +21,18 @@ class RoomWithRoomUsersHiveObjectAdapter
       id: fields[0] as String,
       name: fields[1] as String,
       type: fields[2] as String,
+      createdAt: fields[5] as DateTime,
+      updatedAt: fields[6] as DateTime,
+      roomUsers: (fields[7] as List).cast<UserHiveObject>(),
       description: fields[3] as String?,
       logoUrl: fields[4] as String?,
-      createdAt: fields[5] as DateTime,
-      roomUsers: (fields[6] as List).cast<UserHiveObject>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, RoomWithRoomUsersHiveObject obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -45,6 +46,8 @@ class RoomWithRoomUsersHiveObjectAdapter
       ..writeByte(5)
       ..write(obj.createdAt)
       ..writeByte(6)
+      ..write(obj.updatedAt)
+      ..writeByte(7)
       ..write(obj.roomUsers);
   }
 

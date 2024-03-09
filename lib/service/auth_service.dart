@@ -1,36 +1,39 @@
 import 'dart:convert';
 
-import 'package:connects_you/constants/status_codes.dart';
-import 'package:connects_you/extensions/map.dart';
-import 'package:connects_you/models/requests/authentication_request.dart';
-import 'package:connects_you/models/requests/save_user_keys_request.dart';
-import 'package:connects_you/models/responses/authentication_response.dart';
-import 'package:connects_you/models/responses/main.dart';
-import 'package:connects_you/service/server.dart';
+import 'package:http_wrapper/http.dart';
+
+import '../constants/status_codes.dart';
+import '../extensions/map.dart';
+import '../models/requests/authentication_request.dart';
+import '../models/requests/save_user_keys_request.dart';
+import '../models/responses/authentication_response.dart';
+import '../models/responses/main.dart';
+import 'server.dart';
 
 class AuthService {
-  const AuthService._();
-
-  static AuthService? _cachedInstance;
-
   factory AuthService() {
     return _cachedInstance ??= const AuthService._();
   }
 
+  const AuthService._();
+
+  static AuthService? _cachedInstance;
+
   Future<Response<AuthenticationResponse>?> authenticate(
-      AuthenticationRequest authRequest) async {
-    final authResponse = await ServerApi().post(
+      final AuthenticationRequest authRequest) async {
+    final DecodedResponse authResponse = await ServerApi().post(
       endpoint: Endpoints.AUTHENTICATE,
       body: json.encode(authRequest.toJson()),
     );
     if (authResponse.statusCode == StatusCodes.SUCCESS) {
-      final body = authResponse.decodedBody as Map<String, dynamic>;
+      final Map<String, dynamic> body =
+          authResponse.decodedBody as Map<String, dynamic>;
       if (body.containsKey('user') &&
           body.containsKey('method') &&
           body.containsKey('token')) {
-        return Response(
+        return Response<AuthenticationResponse>(
           code: authResponse.statusCode,
-          message: body.get('message', ''),
+          message: body.get('message', '') as String? ?? '',
           response: AuthenticationResponse.fromJson(body),
         );
       }
@@ -39,55 +42,58 @@ class AuthService {
   }
 
   Future<Response<bool>> saveUserKeys(
-      SaveUserKeysRequest saveUserKeysRequest) async {
-    final authResponse = await ServerApi().post(
+      final SaveUserKeysRequest saveUserKeysRequest) async {
+    final DecodedResponse authResponse = await ServerApi().post(
       endpoint: Endpoints.SAVE_KEYS,
       body: json.encode(saveUserKeysRequest.toJson()),
     );
-    final body = authResponse.decodedBody as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+        authResponse.decodedBody as Map<String, dynamic>;
     if (authResponse.statusCode == StatusCodes.SUCCESS) {
       return Response<bool>(
         code: authResponse.statusCode,
-        message: body.get('message', ''),
+        message: body.get('message', '') as String? ?? '',
         response: true,
       );
     }
     return Response<bool>(
       code: authResponse.statusCode,
-      message: body.get('message', ''),
+      message: body.get('message', '') as String? ?? '',
       response: false,
     );
   }
 
   Future<Response<bool>?> signOut() async {
-    final signOutResponse =
+    final DecodedResponse signOutResponse =
         await ServerApi().patch(endpoint: Endpoints.SIGN_OUT);
-    final body = signOutResponse.decodedBody as Map<String, dynamic>;
-    if ([StatusCodes.SUCCESS, StatusCodes.NO_UPDATE]
+    final Map<String, dynamic> body =
+        signOutResponse.decodedBody as Map<String, dynamic>;
+    if (<int>[StatusCodes.SUCCESS, StatusCodes.NO_UPDATE]
         .contains(signOutResponse.statusCode)) {
-      return Response(
+      return Response<bool>(
         code: signOutResponse.statusCode,
-        message: body.get('message', ''),
+        message: body.get('message', '') as String? ?? '',
         response: true,
       );
     }
-    return Response(
+    return Response<bool>(
       code: signOutResponse.statusCode,
-      message: body.get('message', ''),
+      message: body.get('message', '') as String? ?? '',
       response: false,
     );
   }
 
   Future<Response<String>?> refreshToken() async {
-    final refreshTokenResponse =
+    final DecodedResponse refreshTokenResponse =
         await ServerApi().patch(endpoint: Endpoints.REFRESH_TOKEN);
     if (refreshTokenResponse.statusCode == StatusCodes.SUCCESS) {
-      final body = refreshTokenResponse.decodedBody as Map<String, dynamic>;
+      final Map<String, dynamic> body =
+          refreshTokenResponse.decodedBody as Map<String, dynamic>;
       if (body.containsKey('token')) {
-        return Response(
+        return Response<String>(
           code: refreshTokenResponse.statusCode,
-          message: body.get('message', ''),
-          response: body.get('token'),
+          message: body.get('message', '') as String? ?? '',
+          response: body.get('token') as String? ?? '',
         );
       }
     }

@@ -1,14 +1,17 @@
 // ignore_for_file: constant_identifier_names
 
-import 'package:connects_you/constants/url.dart';
-import 'package:connects_you/controllers/auth_controller.dart';
-import 'package:connects_you/service/auth_service.dart';
-import 'package:connects_you/service/notification_service.dart';
-import 'package:connects_you/service/room_service.dart';
-import 'package:connects_you/service/shared_key_service.dart';
-import 'package:connects_you/service/user_service.dart';
 import 'package:get/get.dart';
 import 'package:http_wrapper/http.dart';
+
+import '../constants/url.dart';
+import '../controllers/auth_controller.dart';
+import 'auth_service.dart';
+import 'common_service.dart';
+import 'message_service.dart';
+import 'notification_service.dart';
+import 'room_service.dart';
+import 'shared_key_service.dart';
+import 'user_service.dart';
 
 class Endpoints {
   static const String prefix = '/api/v1';
@@ -17,6 +20,8 @@ class Endpoints {
   static const String USER = '$prefix/user';
   static const String ROOM = '$prefix/room';
   static const String NOTIFICATION = '$prefix/notification';
+  static const String MESSAGE = '$prefix/message';
+
   static const String AUTHENTICATE = '${Endpoints._AUTH}/authenticate';
   static const String SAVE_KEYS = '${Endpoints._AUTH}/keys';
   static const String GET_SHARED_KEY = '${Endpoints.SHARED_KEY}/get';
@@ -30,30 +35,32 @@ class Endpoints {
   static const String FETCH_ROOMS = '${Endpoints.ROOM}/all';
   static const String ALL_USERS = '${Endpoints.USER}/all';
   static const String ALL_NOTIFICATIONS = '${Endpoints.NOTIFICATION}/all';
+  static const String SEND_MESSAGE = '${Endpoints.MESSAGE}/send';
+  static const String GET_ROOM_MESSAGES = '${Endpoints.MESSAGE}/by-room-id';
+  static const String UPDATED_DATA = '$prefix/updated-data';
 }
 
 class ServerApi extends Http {
-  static final _authController = Get.find<AuthController>();
-
-  ServerApi._()
-      : super(
-          baseURL: URLs.baseURL,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        );
-
-  static ServerApi? _instance;
-
   factory ServerApi() {
     _instance ??= ServerApi._();
     if (_authController.authenticatedUser != null) {
-      _instance!.headers = {
+      _instance!.headers = <String, String>{
         'Authorization': _authController.authenticatedUser!.token
       };
     }
     return _instance!;
   }
+
+  ServerApi._()
+      : super(
+          baseURL: URLs.baseURL,
+          headers: <String, String>{
+            'Content-Type': 'application/json',
+          },
+        );
+  static final AuthController _authController = Get.find<AuthController>();
+
+  static ServerApi? _instance;
 
   static AuthService get authService {
     return AuthService();
@@ -73,6 +80,14 @@ class ServerApi extends Http {
 
   static NotificationService get notificationService {
     return NotificationService();
+  }
+
+  static MessageService get messageService {
+    return MessageService();
+  }
+
+  static CommonService get commonService {
+    return CommonService();
   }
 // static const Details DetailsOps = Details();
 // static const Me MeOps = Me();

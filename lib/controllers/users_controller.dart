@@ -1,19 +1,22 @@
-import 'package:connects_you/constants/hive_box_keys.dart';
-import 'package:connects_you/controllers/inbox_controller.dart';
-import 'package:connects_you/models/base/user.dart';
-import 'package:connects_you/models/common/rooms_with_room_users.dart';
-import 'package:connects_you/models/objects/shared_key_hive_object.dart';
-import 'package:connects_you/models/requests/create_duet_room_request.dart';
-import 'package:connects_you/models/requests/create_group_room_request.dart';
-import 'package:connects_you/models/responses/main.dart';
-import 'package:connects_you/service/server.dart';
-import 'package:connects_you/utils/generate_shared_key.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:flutter_cryptography/helper.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:hive/hive.dart';
+
+import '../constants/hive_box_keys.dart';
+import '../enums/room.dart';
+import '../models/base/user.dart';
+import '../models/common/rooms_with_room_users.dart';
+import '../models/objects/shared_key_hive_object.dart';
+import '../models/requests/create_duet_room_request.dart';
+import '../models/requests/create_group_room_request.dart';
+import '../models/responses/main.dart';
+import '../service/server.dart';
+import '../utils/generate_shared_key.dart';
+import '../widgets/screens/room/room_screen.dart';
+import 'room_controller.dart';
 
 class UsersController extends GetxController {
   final RxList<User> _users = <User>[].obs;
@@ -35,16 +38,16 @@ class UsersController extends GetxController {
 
   bool get showSearchBox => _showSearchBox.value;
 
-  set showSearchBox(bool value) => _showSearchBox.value = value;
+  set showSearchBox(final bool value) => _showSearchBox.value = value;
 
   @override
   void onInit() {
     searchController = TextEditingController();
     searchController.addListener(() {
-      final query = searchController.text;
+      final String query = searchController.text;
       if (query.isNotEmpty) {
-        final searchedUsers = _users
-            .where((user) =>
+        final List<User> searchedUsers = _users
+            .where((final User user) =>
                 user.name.contains(query) || user.email.contains(query))
             .toList();
         _searchedUsers.value = searchedUsers;
@@ -61,69 +64,83 @@ class UsersController extends GetxController {
     super.onClose();
   }
 
-  Future _afterRoomCreated(Response<RoomWithRoomUsers?> response) async {
+  Future<void> _afterRoomCreated(
+      final Response<RoomWithRoomUsers?> response) async {
     if (response.response != null) {
       clearSelectedUsers();
       if (response.response!.isNewlyCreatedRoom) {
-        await Get.find<InboxController>().addRoom(response.response!);
+        await Get.find<RoomController>().addRoom(response.response!);
       }
-      Get.toNamed('/room/${response.response!.id}');
+      Get.toNamed<void>('${RoomScreen.routeName}/${response.response!.id}',
+          arguments: <String, RoomWithRoomUsers?>{
+            'room': response.response,
+          });
     }
 
     _isCreatingRoom.value = false;
   }
 
-  RoomWithRoomUsers? findDuetRoomFromState(int index) {
-    return null;
-    // return Get.find<InboxController>().rooms.firstWhereOrNull((element) {
-    //   if (element.type == RoomType.DUET) {
-    //     final roomUser = element.roomUsers.firstWhereOrNull(
-    //       (element) => element.id == _users[index].id,
-    //     );
-    //     if (roomUser != null) {
-    //       return true;
-    //     }
-    //   }
-    //   return false;
-    // });
+  RoomWithRoomUsers? findDuetRoomFromState(final int index) {
+    return Get.find<RoomController>()
+        .rooms
+        .firstWhereOrNull((final RoomWithRoomUsers element) {
+      if (element.type == RoomType.DUET) {
+        final User? roomUser = element.roomUsers.firstWhereOrNull(
+          (final User element) => element.id == _users[index].id,
+        );
+        if (roomUser != null) {
+          return true;
+        }
+      }
+      return false;
+    });
   }
 
-  Future createDuetIfNotExists(int index) async {
-    final room = findDuetRoomFromState(index);
+  Future<void> createDuetIfNotExists(final int index) async {
+    final RoomWithRoomUsers? room = findDuetRoomFromState(index);
     if (room != null) {
-      Get.toNamed('/room/${room.id}');
+      Get.toNamed<void>('${RoomScreen.routeName}/${room.id}',
+          arguments: <String, RoomWithRoomUsers>{
+            'room': room,
+          });
       return;
     }
 
     _isCreatingRoom.value = true;
     try {
-      final sharedKey =
+      final SharedKeyResponse? sharedKey =
           await generateEncryptedSharedKey(_users[index].publicKey);
+      if (sharedKey == null) {
+        throw Exception('Shared key is null');
+      }
 
-      final createdRoomResponse =
+      final Response<RoomWithRoomUsers?> createdRoomResponse =
           await ServerApi.roomService.createDuetRoom(CreateDuetRoomRequest(
         userId: _users[index].id,
         encryptedSharedKey: sharedKey.encryptedKey,
       ));
-      await Hive.lazyBox<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY).put(
+      await Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY).put(
         _users[index].id,
         SharedKeyHiveObject(
-          key: sharedKey.key,
+          sharedKey: sharedKey.key,
           forUserId: _users[index].id,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
         ),
       );
       await _afterRoomCreated(createdRoomResponse);
     } catch (e) {
-      print("Error while creating room: $e");
+      print('Error while creating room: $e');
     } finally {
       _isCreatingRoom.value = false;
     }
   }
 
-  void onSelected(int index, [bool preSelectedMode = false]) async {
+  Future<void> onSelected(final int index,
+      {final bool preSelectedMode = false}) async {
     if (preSelectedMode || _selectedUsers.isNotEmpty) {
-      final user = _users[index];
-      final isExists = _selectedUsers.containsKey(user.id);
+      final User user = _users[index];
+      final bool isExists = _selectedUsers.containsKey(user.id);
       if (isExists) {
         _selectedUsers.remove(user.id);
       } else {
@@ -134,22 +151,25 @@ class UsersController extends GetxController {
     }
   }
 
-  Future createGroup() async {
+  Future<void> createGroup() async {
     _isCreatingRoom.value = true;
     try {
-      final users = _selectedUsers.values.toList();
-      final roomSecretKey = (randomUUID() + randomUUID()).replaceAll('-', '');
-      final userWiseSharedKeys = await getSharedKeyWithOtherUsers(users);
-      final commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
-      final userKey = await commonBox.get("USER_KEY");
-      final res = await compute((_) async {
-        final selfEncryptedRoomSecretKey = await AesGcmEncryption(
+      final List<User> users = _selectedUsers.values.toList();
+      final String roomSecretKey =
+          (randomUUID() + randomUUID()).replaceAll('-', '');
+      final List<UserWiseSharedKeyResponse> userWiseSharedKeys =
+          await getSharedKeyWithOtherUsers(users);
+      final LazyBox<dynamic> commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
+      final String userKey = await commonBox.get('USER_KEY') as String;
+      final Map<String, Object> res = await compute((final _) async {
+        final String selfEncryptedRoomSecretKey = await AesGcmEncryption(
           secretKey: userKey,
         ).encryptString(roomSecretKey);
 
-        final otherUserEncryptedSharedKeys =
-            await Future.wait(userWiseSharedKeys.map((element) async {
-          final encryptedRoomSecretKey =
+        final List<OtherUserEncryptedSharedKey> otherUserEncryptedSharedKeys =
+            await Future.wait(userWiseSharedKeys
+                .map((final UserWiseSharedKeyResponse element) async {
+          final String encryptedRoomSecretKey =
               await AesGcmEncryption(secretKey: element.sharedKey)
                   .encryptString(
             roomSecretKey,
@@ -159,50 +179,54 @@ class UsersController extends GetxController {
             encryptedRoomSecretKey: encryptedRoomSecretKey,
           );
         }));
-        return {
-          "selfEncryptedRoomSecretKey": selfEncryptedRoomSecretKey,
-          "otherUserEncryptedSharedKeys": otherUserEncryptedSharedKeys,
+        return <String, Object>{
+          'selfEncryptedRoomSecretKey': selfEncryptedRoomSecretKey,
+          'otherUserEncryptedSharedKeys': otherUserEncryptedSharedKeys,
         };
       }, null);
 
-      final createdRoomResponse = await ServerApi.roomService.createGroupRoom(
+      final Response<RoomWithRoomUsers?> createdRoomResponse =
+          await ServerApi.roomService.createGroupRoom(
         CreateGroupRoomRequest(
-          otherUsersEncryptedRoomSecretKeys: res["otherUserEncryptedSharedKeys"]
-              as List<OtherUserEncryptedSharedKey>,
+          otherUsersEncryptedRoomSecretKeys:
+              res['otherUserEncryptedSharedKeys']!
+                  as List<OtherUserEncryptedSharedKey>,
           selfEncryptedRoomSecretKey:
-              res["selfEncryptedRoomSecretKey"] as String,
+              res['selfEncryptedRoomSecretKey']! as String,
         ),
       );
-      final roomId = createdRoomResponse.response!.id;
-      await Hive.lazyBox<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY).put(
+      final String roomId = createdRoomResponse.response!.id;
+      await Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY).put(
         roomId,
         SharedKeyHiveObject(
-          key: userWiseSharedKeys.first.sharedKey,
+          sharedKey: userWiseSharedKeys.first.sharedKey,
           forRoomId: roomId,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
         ),
       );
       await _afterRoomCreated(createdRoomResponse);
     } catch (e) {
-      print("Error while creating room: $e");
+      print('Error while creating room: $e');
     } finally {
       _isCreatingRoom.value = false;
     }
   }
 
-  void onTap(int index) {
+  void onTap(final int index) {
     onSelected(index);
   }
 
-  void onLongPress(int index) {
-    onSelected(index, true);
+  void onLongPress(final int index) {
+    onSelected(index, preSelectedMode: true);
   }
 
   void clearSelectedUsers() {
     _selectedUsers.clear();
   }
 
-  Future fetchAllUsers() async {
-    final users = await ServerApi.usersService.getUsers();
+  Future<void> fetchAllUsers() async {
+    final Response<List<User>> users = await ServerApi.usersService.getUsers();
     if (users.response.isNotEmpty) {
       _users.value = users.response;
     }

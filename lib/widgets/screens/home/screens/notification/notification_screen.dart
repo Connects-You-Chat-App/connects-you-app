@@ -1,7 +1,9 @@
-import 'package:connects_you/constants/locale.dart';
-import 'package:connects_you/controllers/notifications_controller.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Notification;
 import 'package:get/get.dart';
+
+import '../../../../../constants/locale.dart';
+import '../../../../../controllers/notifications_controller.dart';
+import '../../../../../models/base/notification.dart';
 
 class NotificationScreen extends GetView<NotificationsController> {
   const NotificationScreen({super.key});
@@ -9,7 +11,7 @@ class NotificationScreen extends GetView<NotificationsController> {
   static const String routeName = '/notifications';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return RefreshIndicator(
       onRefresh: controller.fetchNotifications,
       triggerMode: RefreshIndicatorTriggerMode.anywhere,
@@ -19,7 +21,7 @@ class NotificationScreen extends GetView<NotificationsController> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   child: Column(
-                    children: [
+                    children: <Widget>[
                       Image.asset(
                         'assets/images/logo.png',
                       ),
@@ -30,13 +32,16 @@ class NotificationScreen extends GetView<NotificationsController> {
               )
             : ListView.separated(
                 itemCount: controller.notifications.length,
-                separatorBuilder: (context, index) => const Divider(),
-                itemBuilder: (context, index) {
-                  final notification = controller.notifications[index];
+                separatorBuilder:
+                    (final BuildContext context, final int index) =>
+                        const Divider(),
+                itemBuilder: (final BuildContext context, final int index) {
+                  final Notification notification =
+                      controller.notifications[index];
                   return ListTile(
                     title: Text(notification.message),
                     subtitle: Row(
-                      children: [
+                      children: <Widget>[
                         TextButton(
                           onPressed: () {
                             controller.joinGroup(index);

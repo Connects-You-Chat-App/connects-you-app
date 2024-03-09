@@ -1,33 +1,35 @@
-import 'package:connects_you/constants/socket_events.dart';
-import 'package:connects_you/constants/url.dart';
-import 'package:connects_you/controllers/inbox_controller.dart';
-import 'package:connects_you/controllers/notifications_controller.dart';
-import 'package:connects_you/models/base/notification.dart';
-import 'package:connects_you/models/base/user.dart';
-import 'package:connects_you/models/common/rooms_with_room_users.dart';
 import 'package:flutter/material.dart' hide Notification;
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+import '../constants/socket_events.dart';
+import '../constants/url.dart';
+import '../models/base/message.dart';
+import '../models/base/notification.dart';
+import '../models/base/user.dart';
+import '../models/common/rooms_with_room_users.dart';
+import 'notifications_controller.dart';
+import 'room_controller.dart';
 
 enum SocketConnectionState { connected, connecting, disconnected }
 
 class SocketController extends GetxController {
   late IO.Socket socket;
   Rx<SocketConnectionState> socketState =
-      Rx(SocketConnectionState.disconnected);
+      SocketConnectionState.disconnected.obs;
 
-  initializeSocket(String token) {
+  void initializeSocket(final String token) {
     socket = IO.io(
         URLs.socketBaseURL,
         IO.OptionBuilder()
-            .setExtraHeaders({
+            .setExtraHeaders(<String, String>{
               'Authorization': token,
             })
             .enableReconnection()
             .setReconnectionAttempts(10)
             .setReconnectionDelay(2000)
             .setReconnectionDelayMax(10000)
-            .setTransports(['websocket'])
+            .setTransports(<String>['websocket'])
             .disableAutoConnect()
             .build());
     _addListeners(token);
@@ -41,59 +43,72 @@ class SocketController extends GetxController {
     super.onClose();
   }
 
-  _addListeners(String token) {
-    socket.onConnecting((_) {
+  void _addListeners(final String token) {
+    socket.onConnecting((final _) {
       debugPrint('Connecting');
       socketState.value = SocketConnectionState.connecting;
     });
-    socket.onConnect((_) {
+    socket.onConnect((final _) {
       debugPrint('Connected');
       socketState.value = SocketConnectionState.connected;
     });
-    socket.onConnectTimeout((_) {
+    socket.onConnectTimeout((final _) {
       debugPrint('ConnectTimeout');
       socketState.value = SocketConnectionState.disconnected;
     });
-    socket.onConnectError((_) {
+    socket.onConnectError((final _) {
       debugPrint('ConnectError');
     });
-    socket.onReconnectAttempt((_) {
+    socket.onReconnectAttempt((final _) {
       debugPrint('ReConnecting Attempting');
       socketState.value = SocketConnectionState.connecting;
     });
-    socket.onReconnecting((_) {
+    socket.onReconnecting((final _) {
       debugPrint('ReConnecting');
       socketState.value = SocketConnectionState.connecting;
     });
-    socket.onReconnect((_) {
+    socket.onReconnect((final _) {
       debugPrint('ReConnected');
       socketState.value = SocketConnectionState.connected;
     });
-    socket.onReconnectError((_) {
+    socket.onReconnectError((final _) {
       debugPrint('ReConnectError');
     });
-    socket.onReconnectFailed((_) {
+    socket.onReconnectFailed((final _) {
       debugPrint('ReConnectFailed');
       socketState.value = SocketConnectionState.disconnected;
     });
-    socket.onDisconnect((_) async {
+    socket.onDisconnect((final _) async {
       debugPrint('disconnected');
       socketState.value = SocketConnectionState.disconnected;
     });
 
-    socket.on(
-        SocketEvents.USER_PRESENCE, (data) => {debugPrint(data.toString())});
-    socket.on(SocketEvents.DUET_ROOM_CREATED, (data) {
-      Get.find<InboxController>()
-          .addNewlyCreatedDuetRoom(RoomWithRoomUsers.fromJson(data));
+    socket.on(SocketEvents.USER_PRESENCE,
+        (final dynamic data) => <void>{debugPrint(data.toString())});
+    socket.on(SocketEvents.DUET_ROOM_CREATED, (final dynamic data) {
+      Get.find<RoomController>().addNewlyCreatedDuetRoom(
+          RoomWithRoomUsers.fromJson(data as Map<String, dynamic>));
     });
-    socket.on(SocketEvents.GROUP_INVITATION, (data) {
+    socket.on(SocketEvents.GROUP_INVITATION, (final dynamic data) {
       Get.find<NotificationsController>()
-          .addNotification(Notification.fromJson(data));
+          .addNotification(Notification.fromJson(data as Map<String, dynamic>));
     });
-    socket.on(SocketEvents.GROUP_JOINED, (data) {
-      Get.find<InboxController>()
-          .addUserToRoom(data['roomId'], User.fromJson(data['user']));
+    socket.on(SocketEvents.GROUP_JOINED, (final dynamic data) {
+      Get.find<RoomController>().addUserToRoom(
+          (data as Map<String, String>)['roomId']!,
+          User.fromJson((data as Map<String, Map<String, dynamic>>)['user']!));
+    });
+    socket.on(SocketEvents.ROOM_MESSAGE, (final dynamic data) {
+      final Message message = Message.fromJson(data as Map<String, dynamic>);
+      print('ROOM_MESSAGE $data');
+      /**
+       * if message sent by me then update the status of message to sent
+       * else add message to room and emit that message is delivered (as this is a message from other user and received by me)
+       */
+      // Get.find<RoomController>().addMessageToRoom(
+      //     data['roomId'], Message.fromJson(data['message']),);
+      // Get.find<InboxController>()
+      //     .addUserToRoom(data['roomId'], User.fromJson(data['user']));
     });
   }
 }

@@ -1,5 +1,3 @@
-// ignore_for_file: constant_identifier_names
-
 class StatusCodes {
   static const int SUCCESS = 200;
   static const int NO_UPDATE = 204;

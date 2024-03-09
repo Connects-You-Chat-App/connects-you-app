@@ -1,37 +1,40 @@
-import 'package:connects_you/constants/status_codes.dart';
-import 'package:connects_you/extensions/map.dart';
-import 'package:connects_you/models/base/notification.dart';
-import 'package:connects_you/models/responses/main.dart';
-import 'package:connects_you/service/server.dart';
+import 'package:http_wrapper/http.dart';
+
+import '../constants/status_codes.dart';
+import '../extensions/map.dart';
+import '../models/base/notification.dart';
+import '../models/responses/main.dart';
+import 'server.dart';
 
 class NotificationService {
-  const NotificationService._();
-
-  static NotificationService? _instance;
-
   factory NotificationService() {
     return _instance ??= const NotificationService._();
   }
 
+  const NotificationService._();
+
+  static NotificationService? _instance;
+
   Future<Response<List<Notification>>> getNotifications() async {
-    final response = await ServerApi().get(
+    final DecodedResponse response = await ServerApi().get(
       endpoint: Endpoints.ALL_NOTIFICATIONS,
     );
-    final body = response.decodedBody as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+        response.decodedBody as Map<String, dynamic>;
     if (response.statusCode == StatusCodes.SUCCESS) {
       return Response<List<Notification>>(
         code: response.statusCode,
-        message: body.get('message', ''),
-        response: body
-            .get("notifications", [])
-            .map<Notification>((key) => Notification.fromJson(key))
+        message: body.get('message', '') as String? ?? '',
+        response: (body['notifications'] as List<dynamic>)
+            .map((final dynamic notification) =>
+                Notification.fromJson(notification as Map<String, dynamic>))
             .toList(),
       );
     }
     return Response<List<Notification>>(
       code: response.statusCode,
-      message: body.get('message', ''),
-      response: [],
+      message: body.get('message', '') as String? ?? '',
+      response: <Notification>[],
     );
   }
 }

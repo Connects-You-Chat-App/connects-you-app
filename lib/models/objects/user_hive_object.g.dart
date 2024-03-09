@@ -8,7 +8,7 @@ part of 'user_hive_object.dart';
 
 class UserHiveObjectAdapter extends TypeAdapter<UserHiveObject> {
   @override
-  final int typeId = 4;
+  final int typeId = 5;
 
   @override
   UserHiveObject read(BinaryReader reader) {
@@ -20,15 +20,16 @@ class UserHiveObjectAdapter extends TypeAdapter<UserHiveObject> {
       id: fields[0] as String,
       name: fields[1] as String,
       email: fields[2] as String,
-      photoUrl: fields[3] as String?,
       publicKey: fields[4] as String,
+      description: fields[5] as String?,
+      photoUrl: fields[3] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserHiveObject obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class UserHiveObjectAdapter extends TypeAdapter<UserHiveObject> {
       ..writeByte(3)
       ..write(obj.photoUrl)
       ..writeByte(4)
-      ..write(obj.publicKey);
+      ..write(obj.publicKey)
+      ..writeByte(5)
+      ..write(obj.description);
   }
 
   @override

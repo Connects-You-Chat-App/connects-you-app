@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const gradientColors = [
+  static const List<Color> gradientColors = <Color>[
     Color.fromRGBO(0, 100, 255, 2),
     Color.fromRGBO(0, 125, 255, 1),
     Color.fromRGBO(0, 150, 255, 1),
     Color.fromRGBO(0, 100, 255, 1)
   ];
 
-  static const lightTextTheme = TextTheme(
+  static const TextTheme lightTextTheme = TextTheme(
     displayLarge: TextStyle(
       color: Colors.black,
       fontSize: 96.0,
@@ -101,7 +101,7 @@ class AppTheme {
     ),
   );
 
-  static const darkTextTheme = TextTheme(
+  static const TextTheme darkTextTheme = TextTheme(
     displayLarge: TextStyle(
       color: Colors.white,
       fontSize: 96.0,
@@ -194,7 +194,7 @@ class AppTheme {
     ),
   );
 
-  static final appThemeLight = ThemeData(
+  static final ThemeData appThemeLight = ThemeData(
     fontFamily: 'QuickSand',
     primaryColor: Colors.blue,
     textTheme: lightTextTheme,
@@ -353,18 +353,16 @@ class AppTheme {
     ),
     scaffoldBackgroundColor: Colors.white,
     colorScheme: ColorScheme.fromSwatch(
-      primarySwatch: Colors.blue,
       backgroundColor: Colors.white,
       accentColor: Colors.blue,
       errorColor: const Color(0xFFFD2671),
-      brightness: Brightness.light,
     ).copyWith(
       secondary: Colors.blueAccent,
       shadow: Colors.blueAccent,
     ),
   );
 
-  static final appThemeDark = ThemeData(
+  static final ThemeData appThemeDark = ThemeData(
     fontFamily: 'QuickSand',
     textTheme: darkTextTheme,
     primaryColor: Colors.blue,
@@ -523,7 +521,6 @@ class AppTheme {
     ),
     scaffoldBackgroundColor: Colors.black,
     colorScheme: ColorScheme.fromSwatch(
-      primarySwatch: Colors.blue,
       backgroundColor: Colors.black,
       accentColor: Colors.blue,
       errorColor: const Color(0xFFFD2671),

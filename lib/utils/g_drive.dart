@@ -1,35 +1,41 @@
-import 'package:connects_you/constants/hive_secure_storage_keys.dart';
-import 'package:connects_you/constants/keys.dart';
-import 'package:connects_you/controllers/auth_controller.dart';
-import 'package:connects_you/utils/secure_storage.dart';
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:gdrive/g_drive.dart';
+import 'package:gdrive/response.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-class GDriveOps {
-  static const _userKeyFileName = 'key.txt';
-  static final _authController = Get.find<AuthController>();
+import '../constants/hive_secure_storage_keys.dart';
+import '../constants/keys.dart';
+import '../controllers/auth_controller.dart';
+import 'secure_storage.dart';
+
+mixin GDriveOps {
+  static const String _userKeyFileName = 'key.txt';
+  static final AuthController _authController = Get.find<AuthController>();
 
   static Future<dynamic> _getLocallyStoredSharedKeyFileId() {
     return SecureStorage.read(key: HiveSecureStorageKeys.USER_KEY_FILE);
   }
 
-  static Future<bool> _saveToDrive(String fileContent,
-      [String? existedFileId]) async {
-    final token = await _authController.refreshGoogleTokens();
-    final accessToken = token.accessToken;
+  static Future<bool> _saveToDrive(final String fileContent,
+      [final String? existedFileId]) async {
+    final GoogleSignInAuthentication token =
+        await _authController.refreshGoogleTokens();
+    final String? accessToken = token.accessToken;
     if (accessToken == null) {
       throw Exception('accessToken null');
     }
 
-    String? fileId = existedFileId ?? await _getLocallyStoredSharedKeyFileId();
+    final String? fileId =
+        existedFileId ?? await _getLocallyStoredSharedKeyFileId() as String?;
     if (fileId == null) {
-      final response = await GDrive.getFileAndWriteFileContent(
-          _userKeyFileName, fileContent, accessToken);
+      final FileResponse<dynamic> response =
+          await GDrive.getFileAndWriteFileContent(
+              _userKeyFileName, fileContent, accessToken);
       await SecureStorage.write(key: _userKeyFileName, value: response.fileId);
       return true;
     } else {
-      final response = await GDrive.writeFileContent(
+      final FileResponse<dynamic> response = await GDrive.writeFileContent(
           _userKeyFileName, fileContent, accessToken, fileId);
       if (response.response == null) {
         throw Exception('Write file content response null');
@@ -39,40 +45,35 @@ class GDriveOps {
   }
 
   static Future<bool> saveUserKey(
-    String userKey,
+    final String userKey,
   ) async {
-    final encryptedJsonString =
-        await AesGcmEncryption(secretKey: Keys.ENCRYTION_KEY)
+    final String encryptedJsonString =
+        await AesGcmEncryption(secretKey: Keys.ENCRYPTION_KEY)
             .encryptString(userKey);
-    if (encryptedJsonString != null) {
-      return await _saveToDrive(encryptedJsonString);
-    }
-    throw Exception('unable to encrypt');
+    return _saveToDrive(encryptedJsonString);
   }
 
   static Future<String> getUserKey() async {
-    final token = await _authController.refreshGoogleTokens();
-    final accessToken = token.accessToken;
+    final GoogleSignInAuthentication token =
+        await _authController.refreshGoogleTokens();
+    final String? accessToken = token.accessToken;
     if (accessToken == null) {
       throw Exception('accessToken null');
     }
 
-    String? fileId = await _getLocallyStoredSharedKeyFileId();
+    final String? fileId = await _getLocallyStoredSharedKeyFileId() as String?;
     String encryptedUserKey;
     if (fileId == null) {
-      final response =
+      final FileResponse<String> response =
           await GDrive.getFileAndReadFileContent(_userKeyFileName, accessToken);
       await SecureStorage.write(key: _userKeyFileName, value: response.fileId);
       encryptedUserKey = response.response;
     } else {
       encryptedUserKey = await GDrive.readFileContent(fileId, accessToken);
     }
-    final decryptedUserKey =
-        await AesGcmEncryption(secretKey: Keys.ENCRYTION_KEY)
+    final String decryptedUserKey =
+        await AesGcmEncryption(secretKey: Keys.ENCRYPTION_KEY)
             .decryptString(encryptedUserKey);
-    if (decryptedUserKey == null) {
-      throw Exception('decrypted text null');
-    }
     return decryptedUserKey;
   }
 }

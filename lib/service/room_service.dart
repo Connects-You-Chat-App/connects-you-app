@@ -1,103 +1,113 @@
 import 'dart:convert';
 
-import 'package:connects_you/constants/status_codes.dart';
-import 'package:connects_you/extensions/map.dart';
-import 'package:connects_you/models/common/rooms_with_room_users.dart';
-import 'package:connects_you/models/requests/create_duet_room_request.dart';
-import 'package:connects_you/models/requests/create_group_room_request.dart';
-import 'package:connects_you/models/requests/join_group_request.dart';
-import 'package:connects_you/models/responses/main.dart';
-import 'package:connects_you/service/server.dart';
+import 'package:http_wrapper/http.dart';
+
+import '../constants/status_codes.dart';
+import '../extensions/map.dart';
+import '../models/common/rooms_with_room_users.dart';
+import '../models/requests/create_duet_room_request.dart';
+import '../models/requests/create_group_room_request.dart';
+import '../models/requests/join_group_request.dart';
+import '../models/responses/main.dart';
+import 'server.dart';
 
 class RoomService {
-  const RoomService._();
-
-  static RoomService? _instance;
-
   factory RoomService() {
     return _instance ??= const RoomService._();
   }
 
+  const RoomService._();
+
+  static RoomService? _instance;
+
   Future<Response<RoomWithRoomUsers?>> createDuetRoom(
-      CreateDuetRoomRequest createDuetRoomRequest) async {
-    final response = await ServerApi().post(
+      final CreateDuetRoomRequest createDuetRoomRequest) async {
+    final DecodedResponse response = await ServerApi().post(
       endpoint: Endpoints.CREATE_DUET_ROOM,
       body: jsonEncode(createDuetRoomRequest.toJson()),
     );
-    final body = response.decodedBody as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+        response.decodedBody as Map<String, dynamic>;
     if (response.statusCode == StatusCodes.SUCCESS) {
-      return Response(
+      return Response<RoomWithRoomUsers>(
         code: response.statusCode,
-        message: body.get('message', ''),
-        response: RoomWithRoomUsers.fromJson(body.get('room', {})),
+        message: body.get('message', '') as String? ?? '',
+        response: RoomWithRoomUsers.fromJson(
+            body.get('room', <String, dynamic>{}) as Map<String, dynamic>),
       );
     }
-    return Response(
+    return Response<RoomWithRoomUsers?>(
       code: response.statusCode,
-      message: body.get('message', ''),
+      message: body.get('message', '') as String? ?? '',
       response: null,
     );
   }
 
   Future<Response<RoomWithRoomUsers?>> createGroupRoom(
-      CreateGroupRoomRequest createGroupRoomRequest) async {
-    final response = await ServerApi().post(
+      final CreateGroupRoomRequest createGroupRoomRequest) async {
+    final DecodedResponse response = await ServerApi().post(
       endpoint: Endpoints.CREATE_GROUP_ROOM,
       body: jsonEncode(createGroupRoomRequest.toJson()),
     );
-    final body = response.decodedBody as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+        response.decodedBody as Map<String, dynamic>;
     if (response.statusCode == StatusCodes.SUCCESS) {
-      return Response(
+      return Response<RoomWithRoomUsers>(
         code: response.statusCode,
-        message: body.get('message', ''),
-        response: RoomWithRoomUsers.fromJson(body.get('room', {})),
+        message: body.get('message', '') as String? ?? '',
+        response: RoomWithRoomUsers.fromJson(
+            body.get('room', <String, dynamic>{}) as Map<String, dynamic>),
       );
     }
-    return Response(
+    return Response<RoomWithRoomUsers?>(
       code: response.statusCode,
-      message: body.get('message', ''),
+      message: body.get('message', '') as String? ?? '',
       response: null,
     );
   }
 
   Future<Response<List<RoomWithRoomUsers>>> fetchRooms() async {
-    final response = await ServerApi().get(
+    final DecodedResponse response = await ServerApi().get(
       endpoint: Endpoints.FETCH_ROOMS,
     );
-    final body = response.decodedBody as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+        response.decodedBody as Map<String, dynamic>;
     if (response.statusCode == StatusCodes.SUCCESS) {
-      return Response(
+      return Response<List<RoomWithRoomUsers>>(
         code: response.statusCode,
-        message: body.get('message', ''),
-        response: (body.get('rooms', []) as List)
-            .map((e) => RoomWithRoomUsers.fromJson(e))
+        message: body.get('message', '') as String? ?? '',
+        response: (body['rooms'] as List<dynamic>)
+            .map((final dynamic e) =>
+                RoomWithRoomUsers.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
     } else {
-      return Response(
+      return Response<List<RoomWithRoomUsers>>(
         code: response.statusCode,
-        message: body.get('message', ''),
-        response: [],
+        message: body.get('message', '') as String? ?? '',
+        response: <RoomWithRoomUsers>[],
       );
     }
   }
 
-  Future joinGroup(JoinGroupRequest joinGroupRequest) async {
-    final response = await ServerApi().post(
+  Future<Response<void>> joinGroup(
+      final JoinGroupRequest joinGroupRequest) async {
+    final DecodedResponse response = await ServerApi().post(
       endpoint: Endpoints.JOIN_GROUP,
       body: jsonEncode(joinGroupRequest.toJson()),
     );
-    final body = response.decodedBody as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+        response.decodedBody as Map<String, dynamic>;
     if (response.statusCode == StatusCodes.SUCCESS) {
-      return Response(
+      return Response<void>(
         code: response.statusCode,
-        message: body.get('message', ''),
+        message: body.get('message', '') as String? ?? '',
         response: null,
       );
     } else {
-      return Response(
+      return Response<void>(
         code: response.statusCode,
-        message: body.get('message', ''),
+        message: body.get('message', '') as String? ?? '',
         response: null,
       );
     }

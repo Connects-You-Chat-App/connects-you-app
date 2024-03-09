@@ -1,24 +1,28 @@
 import 'package:circle_nav_bar/circle_nav_bar.dart';
-import 'package:connects_you/constants/widget.dart';
-import 'package:connects_you/controllers/home_controller.dart';
-import 'package:connects_you/theme/app_theme.dart';
-import 'package:connects_you/widgets/common/screeen_container.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../constants/widget.dart';
+import '../../../controllers/home_controller.dart';
+import '../../../theme/app_theme.dart';
+import '../../common/screen_container.dart';
+
 class HomeScreen extends StatelessWidget {
-  final _homeController = Get.put(HomeController());
+  HomeScreen({super.key}) {
+    _homeController = Get.put(HomeController());
+  }
+
   static const String routeName = '/home';
 
-  HomeScreen({super.key});
+  late final HomeController _homeController;
 
-  List<Icon> getIcons(MediaQueryData mediaQuery, int currentIndex) {
-    final icons = [
-      [0, Icons.chat_rounded],
-      [1, Icons.notifications_active_rounded],
-      [2, Icons.person_rounded]
+  List<Icon> getIcons(final MediaQueryData mediaQuery, final int currentIndex) {
+    final List<List<Object>> icons = <List<Object>>[
+      <Object>[0, Icons.chat_rounded],
+      <Object>[1, Icons.notifications_active_rounded],
+      <Object>[2, Icons.person_rounded]
     ];
-    return icons.map((icon) {
+    return icons.map((final List<Object> icon) {
       return Icon(icon[1] as IconData,
           color: icon[0] == currentIndex ? Colors.white : Colors.grey,
           size: mediaQuery.size.width * 0.08);
@@ -26,27 +30,27 @@ class HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final mediaQuery = MediaQuery.of(context);
+  Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
     return ScreenContainer(
       child: SafeArea(
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: theme.colorScheme.background,
           body: Stack(
-            children: [
+            children: <Widget>[
               PageView.builder(
                 controller: _homeController.controller,
                 itemCount: _homeController.screens.length,
                 onPageChanged: _homeController.onCurrentIndexChanged,
-                itemBuilder: (context, index) {
+                itemBuilder: (final BuildContext context, final int index) {
                   return _homeController.screens[index];
                 },
               ),
               Obx(
                 () {
-                  final icons =
+                  final List<Icon> icons =
                       getIcons(mediaQuery, _homeController.currentIndex);
                   return AnimatedPositioned(
                     duration: const Duration(milliseconds: 200),
@@ -57,7 +61,7 @@ class HomeScreen extends StatelessWidget {
                     child: CircleNavBar(
                       activeIndex: _homeController.currentIndex,
                       color: theme.cardColor,
-                      onTap: (index) {
+                      onTap: (final int index) {
                         _homeController.changeIndex(index);
                       },
                       activeIcons: icons,
@@ -65,7 +69,7 @@ class HomeScreen extends StatelessWidget {
                       circleWidth: mediaQuery.size.width * 0.15,
                       height: mediaQuery.size.height * 0.075,
                       circleGradient: const LinearGradient(
-                        colors: [
+                        colors: <Color>[
                           Color.fromRGBO(0, 100, 255, 2),
                           Color.fromRGBO(0, 100, 255, 2),
                         ],

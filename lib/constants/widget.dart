@@ -1,13 +1,11 @@
-// ignore_for_file: constant_identifier_names
-
 import 'package:flutter/cupertino.dart';
 
 class WidgetConstants {
-  static const fastAnimation = Duration(milliseconds: 250);
-  static const normalAnimation = Duration(milliseconds: 500);
-  static const slowAnimation = Duration(milliseconds: 1000);
+  static const Duration fastAnimation = Duration(milliseconds: 250);
+  static const Duration normalAnimation = Duration(milliseconds: 500);
+  static const Duration slowAnimation = Duration(milliseconds: 1000);
 
-  static const offset00 = Offset(0, 0);
+  static const Offset offset00 = Offset(0, 0);
 
   static const double spacing_xxxs = 4;
   static const double spacing_xxs = 6;

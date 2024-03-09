@@ -1,58 +1,74 @@
-import 'package:connects_you/constants/hive_box_keys.dart';
-import 'package:connects_you/controllers/home_controller.dart';
-import 'package:connects_you/controllers/inbox_controller.dart';
-import 'package:connects_you/models/base/notification.dart';
-import 'package:connects_you/models/common/shared_key.dart';
-import 'package:connects_you/models/objects/shared_key_hive_object.dart';
-import 'package:connects_you/models/requests/join_group_request.dart';
-import 'package:connects_you/service/server.dart';
-import 'package:connects_you/utils/generate_shared_key.dart';
-import 'package:connects_you/widgets/screens/home/screens/inbox/inbox_screen.dart';
+import 'dart:developer';
+
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide Response;
 import 'package:hive/hive.dart';
+
+import '../constants/hive_box_keys.dart';
+import '../models/base/notification.dart';
+import '../models/common/shared_key.dart';
+import '../models/objects/shared_key_hive_object.dart';
+import '../models/requests/join_group_request.dart';
+import '../models/responses/main.dart';
+import '../service/server.dart';
+import '../utils/generate_shared_key.dart';
+import '../widgets/screens/home/screens/inbox/inbox_screen.dart';
+import 'home_controller.dart';
+import 'room_controller.dart';
 
 class NotificationsController extends GetxController {
   final RxList<Notification> _notifications = <Notification>[].obs;
 
   RxList<Notification> get notifications => _notifications;
 
-  Future fetchNotifications() async {
-    final response = await ServerApi.notificationService.getNotifications();
+  Future<void> fetchNotifications() async {
+    final Response<List<Notification>> response =
+        await ServerApi.notificationService.getNotifications();
     _notifications.value = response.response;
   }
 
-  void addNotification(Notification notification) {
+  void addNotification(final Notification notification) {
     _notifications.add(notification);
   }
 
-  Future joinGroup(int index) async {
-    final notification = _notifications[index];
-    final sharedKeyBox =
-        Hive.lazyBox<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
-    var sharedKeyWithSender =
-        (await sharedKeyBox.get(notification.senderUser.id))?.key;
+  Future<void> joinGroup(final int index) async {
+    final Notification notification = _notifications[index];
+    final Box<SharedKeyHiveObject> sharedKeyBox =
+        Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
+    String? sharedKeyWithSender =
+        sharedKeyBox.get(notification.senderUser.id)?.sharedKey;
     if (sharedKeyWithSender == null) {
-      final value =
+      final SharedKeyResponse? value =
           await generateEncryptedSharedKey(notification.senderUser.publicKey);
-      final sharedKeyHiveObject = SharedKeyHiveObject(
-        key: value.key,
+      if (value == null) {
+        log('Shared key is null');
+        return;
+      }
+      final SharedKeyHiveObject sharedKeyHiveObject = SharedKeyHiveObject(
+        sharedKey: value.key,
         forUserId: notification.senderUser.id,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
-      await Future.wait([
+      await Future.wait(<Future<void>>[
         sharedKeyBox.put(notification.senderUser.id, sharedKeyHiveObject),
         ServerApi.sharedKeyService.saveKey(
           SharedKey(
-              key: value.encryptedKey, forUserId: notification.senderUser.id),
+            key: value.encryptedKey,
+            forUserId: notification.senderUser.id,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
         ),
       ]);
       sharedKeyWithSender = value.key;
     }
-    final roomSecretKey = await AesGcmEncryption(secretKey: sharedKeyWithSender)
-        .decryptString(notification.encryptedRoomSecretKey);
-    final commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
-    final userKey = await commonBox.get("USER_KEY");
-    final selfEncryptedRoomSecretKey =
+    final String roomSecretKey =
+        await AesGcmEncryption(secretKey: sharedKeyWithSender)
+            .decryptString(notification.encryptedRoomSecretKey);
+    final LazyBox<dynamic> commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
+    final String userKey = await commonBox.get('USER_KEY') as String;
+    final String selfEncryptedRoomSecretKey =
         await AesGcmEncryption(secretKey: userKey).encryptString(roomSecretKey);
 
     await ServerApi.roomService.joinGroup(JoinGroupRequest(
@@ -61,14 +77,14 @@ class NotificationsController extends GetxController {
     ));
 
     _notifications.removeAt(index);
-    final inboxController = Get.find<InboxController>();
-    final homeController = Get.find<HomeController>();
-    await inboxController.fetchRooms(true);
+    final RoomController inboxController = Get.find<RoomController>();
+    final HomeController homeController = Get.find<HomeController>();
+    await inboxController.fetchRooms(fromServer: true);
     homeController.navigate(InboxScreen.routeName);
   }
 
   @override
-  onInit() {
+  void onInit() {
     super.onInit();
     fetchNotifications();
   }

@@ -1,16 +1,15 @@
 class GetUserSharedKeysResponse {
-  final String privateKey;
-  final String publicKey;
-
   const GetUserSharedKeysResponse({
     required this.privateKey,
     required this.publicKey,
   });
 
-  factory GetUserSharedKeysResponse.fromJson(Map<String, dynamic> json) {
+  factory GetUserSharedKeysResponse.fromJson(final Map<String, dynamic> json) {
     return GetUserSharedKeysResponse(
-      privateKey: json['privateKey'],
-      publicKey: json['publicKey'],
-    );
+        privateKey: json['privateKey'] as String,
+        publicKey: json['publicKey'] as String);
   }
+
+  final String privateKey;
+  final String publicKey;
 }

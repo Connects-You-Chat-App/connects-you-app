@@ -3,7 +3,7 @@
 import 'package:firebase_core/firebase_core.dart'
     show Firebase, FirebaseOptions;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -16,7 +16,7 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 
-Future initializeAppIfNotAlready() async {
+Future<void> initializeAppIfNotAlready() async {
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

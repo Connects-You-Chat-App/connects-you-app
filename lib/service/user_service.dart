@@ -1,37 +1,40 @@
-import 'package:connects_you/constants/status_codes.dart';
-import 'package:connects_you/extensions/map.dart';
-import 'package:connects_you/models/base/user.dart';
-import 'package:connects_you/models/responses/main.dart';
-import 'package:connects_you/service/server.dart';
+import 'package:http_wrapper/http.dart';
+
+import '../constants/status_codes.dart';
+import '../extensions/map.dart';
+import '../models/base/user.dart';
+import '../models/responses/main.dart';
+import 'server.dart';
 
 class UserService {
-  const UserService._();
-
-  static UserService? _instance;
-
   factory UserService() {
     return _instance ??= const UserService._();
   }
 
+  const UserService._();
+
+  static UserService? _instance;
+
   Future<Response<List<User>>> getUsers() async {
-    final response = await ServerApi().get(
+    final DecodedResponse response = await ServerApi().get(
       endpoint: Endpoints.ALL_USERS,
     );
-    final body = response.decodedBody as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+    response.decodedBody as Map<String, dynamic>;
     if (response.statusCode == StatusCodes.SUCCESS) {
       return Response<List<User>>(
         code: response.statusCode,
-        message: body.get('message', ''),
-        response: body
-            .get("users", [])
-            .map<User>((key) => User.fromJson(key))
+        message: body.get('message', '') as String? ?? '',
+        response: (body['users'] as List<dynamic>)
+            .map<User>((final dynamic key) =>
+            User.fromJson(key as Map<String, dynamic>))
             .toList(),
       );
     }
     return Response<List<User>>(
       code: response.statusCode,
-      message: body.get('message', ''),
-      response: [],
+      message: body.get('message', '') as String? ?? '',
+      response: <User>[],
     );
   }
 }

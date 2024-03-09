@@ -1,10 +1,20 @@
-import 'package:connects_you/models/base/user.dart';
 import 'package:hive/hive.dart';
+
+import '../base/user.dart';
 
 part 'user_hive_object.g.dart';
 
-@HiveType(typeId: 4)
+@HiveType(typeId: 5)
 class UserHiveObject extends HiveObject {
+  UserHiveObject({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.publicKey,
+    this.description,
+    this.photoUrl,
+  });
+
   @HiveField(0)
   late String id;
   @HiveField(1)
@@ -15,21 +25,16 @@ class UserHiveObject extends HiveObject {
   late String? photoUrl;
   @HiveField(4)
   late String publicKey;
+  @HiveField(5)
+  late String? description;
 
-  UserHiveObject({
-    required this.id,
-    required this.name,
-    required this.email,
-    this.photoUrl,
-    required this.publicKey,
-  });
-
-  static UserHiveObject fromUser(User user) => UserHiveObject(
+  static UserHiveObject fromUser(final User user) => UserHiveObject(
         id: user.id,
         name: user.name,
         email: user.email,
         photoUrl: user.photoUrl,
-        publicKey: user.publicKey!,
+        publicKey: user.publicKey,
+        description: user.description,
       );
 
   User toUser() => User(
@@ -38,5 +43,6 @@ class UserHiveObject extends HiveObject {
         email: email,
         photoUrl: photoUrl,
         publicKey: publicKey,
+        description: description,
       );
 }

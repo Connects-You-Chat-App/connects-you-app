@@ -1,11 +1,12 @@
-import 'package:connects_you/controllers/home_controller.dart';
-import 'package:connects_you/controllers/users_controller.dart';
-import 'package:connects_you/widgets/common/button.dart';
-import 'package:connects_you/widgets/screens/home/screens/inbox/rooms.dart';
-import 'package:connects_you/widgets/screens/users/users_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
+
+import '../../../../../controllers/home_controller.dart';
+import '../../../../../controllers/users_controller.dart';
+import '../../../../common/button.dart';
+import '../../../users/users_screen.dart';
+import 'rooms.dart';
 
 class InboxScreen extends GetView<HomeController> {
   const InboxScreen({super.key});
@@ -14,21 +15,21 @@ class InboxScreen extends GetView<HomeController> {
 
   void onFloatingButtonPressed() {
     Get.find<UsersController>().fetchAllUsers();
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: Get.context!,
       isScrollControlled: true,
       constraints: BoxConstraints(
         maxHeight: Get.height * 0.9,
       ),
-      builder: (_) => const UsersScreen(),
+      builder: (final _) => const UsersScreen(),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       body: NotificationListener<UserScrollNotification>(
-        onNotification: (scrollInfo) {
+        onNotification: (final UserScrollNotification scrollInfo) {
           if (scrollInfo.direction != ScrollDirection.idle &&
               scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
             return false;

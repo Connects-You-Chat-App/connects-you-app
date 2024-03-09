@@ -7,4 +7,5 @@ class SocketEvents {
   static const String GROUP_INVITATION = 'GROUP_INVITATION';
   static const String GROUP_JOINED = 'GROUP_JOINED';
   static const String USER_STATUS = 'USER_STATUS';
+  static const String ROOM_MESSAGE = 'ROOM_MESSAGE';
 }

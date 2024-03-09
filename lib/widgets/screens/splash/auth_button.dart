@@ -1,15 +1,16 @@
-import 'package:connects_you/constants/widget.dart';
-import 'package:connects_you/controllers/auth_controller.dart';
 // import 'package:connects_you/widgets/main/splash_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 
+import '../../../constants/widget.dart';
+import '../../../controllers/auth_controller.dart';
+
 class AuthButton extends GetWidget<AuthController> {
   const AuthButton({super.key});
 
-  Future _onAuthButtonClick(BuildContext context) async {
+  Future _onAuthButtonClick(final BuildContext context) async {
     try {
       return await controller.authenticate();
     } catch (error) {
@@ -18,14 +19,14 @@ class AuthButton extends GetWidget<AuthController> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
 
     return Padding(
       padding: const EdgeInsets.only(top: WidgetConstants.spacing_xxxl),
       child: Obx(
         () => Column(
-          children: [
+          children: <Widget>[
             InkWell(
               highlightColor: Colors.black54,
               borderRadius: BorderRadius.circular(WidgetConstants.spacing_xxl),
@@ -37,7 +38,7 @@ class AuthButton extends GetWidget<AuthController> {
                     vertical: WidgetConstants.spacing_sm),
                 child: Stack(
                   alignment: Alignment.center,
-                  children: [
+                  children: <Widget>[
                     if (controller.authState == AuthStates.inProgress)
                       CupertinoActivityIndicator(
                         color: theme.primaryColor,
@@ -46,7 +47,7 @@ class AuthButton extends GetWidget<AuthController> {
                     else
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+                        children: <Widget>[
                           SvgPicture.asset(
                             'assets/svgs/google.svg',
                             height: 30,

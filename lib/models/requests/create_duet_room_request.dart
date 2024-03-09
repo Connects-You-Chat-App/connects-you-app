@@ -1,14 +1,14 @@
 class CreateDuetRoomRequest {
-  final String userId;
-  final String encryptedSharedKey;
-
   CreateDuetRoomRequest({
     required this.userId,
     required this.encryptedSharedKey,
   });
 
+  final String userId;
+  final String encryptedSharedKey;
+
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'userId': userId,
       'encryptedSharedKey': encryptedSharedKey,
     };

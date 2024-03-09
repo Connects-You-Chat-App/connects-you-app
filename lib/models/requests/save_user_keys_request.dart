@@ -1,14 +1,14 @@
 class SaveUserKeysRequest {
-  final String privateKey;
-  final String publicKey;
-
   const SaveUserKeysRequest({
     required this.privateKey,
     required this.publicKey,
   });
 
+  final String privateKey;
+  final String publicKey;
+
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'privateKey': privateKey,
       'publicKey': publicKey,
     };

@@ -1,17 +1,18 @@
 import 'dart:async';
 
-import 'package:connects_you/constants/locale.dart';
-import 'package:connects_you/constants/widget.dart';
-import 'package:connects_you/controllers/auth_controller.dart';
-import 'package:connects_you/widgets/common/screeen_container.dart';
-import 'package:connects_you/widgets/screens/splash/auth_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class SplashScreen extends StatefulWidget {
-  static const String routeName = '/';
+import '../../../constants/locale.dart';
+import '../../../constants/widget.dart';
+import '../../../controllers/auth_controller.dart';
+import '../../common/screen_container.dart';
+import 'auth_button.dart';
 
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  static const String routeName = '/';
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -40,7 +41,8 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
     _authController = Get.find<AuthController>();
-    _authStateSubscription = _authController.authStateSubscription((event) {
+    _authStateSubscription =
+        _authController.authStateSubscription((final AuthStates event) {
       if (event == AuthStates.completed) {
         if (!_authController.isAuthenticated) {
           _animationController.forward();
@@ -60,9 +62,9 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final mediaQuery = MediaQuery.of(context);
+  Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
     return ScreenContainer(
       child: Scaffold(
         backgroundColor: theme.colorScheme.background,
@@ -73,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
             top: WidgetConstants.spacing_xxxl * 5,
           ),
           child: Column(
-            children: [
+            children: <Widget>[
               Image.asset(
                 'assets/images/logo.png',
                 width: mediaQuery.size.width * 0.8,
@@ -85,7 +87,8 @@ class _SplashScreenState extends State<SplashScreen>
               ),
               AnimatedBuilder(
                 animation: _animationController,
-                builder: (context, child) => Transform.translate(
+                builder: (final BuildContext context, final Widget? child) =>
+                    Transform.translate(
                   offset: Offset(
                     0,
                     _animation.value.dy,

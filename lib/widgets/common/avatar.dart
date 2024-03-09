@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class Avatar extends StatelessWidget {
-  final String? photoUrl;
-
-  final Icon? icon;
-  final String? firstLetter;
 
   const Avatar({
     super.key,
@@ -13,6 +9,10 @@ class Avatar extends StatelessWidget {
     this.firstLetter,
     this.icon,
   });
+  final String? photoUrl;
+
+  final Icon? icon;
+  final String? firstLetter;
 
   Widget squircleAvatar() {
     return Container(
@@ -44,8 +44,8 @@ class Avatar extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return SizedBox(
       height: 48,
       width: 48,

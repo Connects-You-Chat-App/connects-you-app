@@ -1,24 +1,26 @@
-import 'package:connects_you/controllers/users_controller.dart';
-import 'package:connects_you/widgets/screens/users/user_row.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../../../controllers/users_controller.dart';
+import '../../../models/base/user.dart';
+import 'user_row.dart';
 
 class UsersScreen extends GetView<UsersController> {
   const UsersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final mediaQuery = MediaQuery.of(context);
+  Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
     return PopScope(
-      onPopInvoked: (_) {
+      onPopInvoked: (final _) {
         controller.clearSelectedUsers();
       },
       child: Stack(
         alignment: Alignment.center,
         fit: StackFit.expand,
-        children: [
+        children: <Widget>[
           Obx(
             () => Scaffold(
               appBar: AppBar(
@@ -39,29 +41,24 @@ class UsersScreen extends GetView<UsersController> {
                         : const Text(
                             'Users',
                           ),
-                actions: [
-                  !controller.showSearchBox && controller.selectedUsers.isEmpty
-                      ? IconButton(
+                actions: <Widget>[
+                  if (!controller.showSearchBox && controller.selectedUsers.isEmpty) IconButton(
                           icon: Icon(
                             Icons.search_rounded,
                             color: theme.primaryColor,
                             size: 32,
                           ),
-                          onPressed: () => controller.showSearchBox = true)
-                      : const SizedBox.shrink(),
-                  controller.selectedUsers.length > 1
-                      ? IconButton(
+                          onPressed: () => controller.showSearchBox = true) else const SizedBox.shrink(),
+                  if (controller.selectedUsers.length > 1) IconButton(
                           icon: Icon(
                             Icons.group_add_rounded,
                             color: theme.primaryColor,
                             size: 32,
                           ),
                           onPressed: controller.createGroup,
-                        )
-                      : const SizedBox.shrink(),
-                  controller.selectedUsers.isNotEmpty ||
-                          controller.showSearchBox
-                      ? IconButton(
+                        ) else const SizedBox.shrink(),
+                  if (controller.selectedUsers.isNotEmpty ||
+                          controller.showSearchBox) IconButton(
                           icon: Icon(
                             Icons.close_rounded,
                             color: theme.primaryColor,
@@ -71,8 +68,7 @@ class UsersScreen extends GetView<UsersController> {
                             controller.selectedUsers.clear();
                             controller.showSearchBox = false;
                           },
-                        )
-                      : const SizedBox.shrink(),
+                        ) else const SizedBox.shrink(),
                 ],
               ),
               body: RefreshIndicator(
@@ -90,10 +86,10 @@ class UsersScreen extends GetView<UsersController> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 8, horizontal: 16),
                         itemCount: controller.users.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (_, index) {
-                          final user = controller.users[index];
-                          final isSelected =
+                        separatorBuilder: (final _, final __) => const SizedBox(height: 8),
+                        itemBuilder: (final _, final int index) {
+                          final User user = controller.users[index];
+                          final bool isSelected =
                               controller.selectedUsers.containsKey(user.id);
                           return UserRow(
                             user: user,
@@ -106,16 +102,14 @@ class UsersScreen extends GetView<UsersController> {
               ),
             ),
           ),
-          controller.isCreatingRoom
-              ? SizedBox(
+          if (controller.isCreatingRoom) SizedBox(
                   height: mediaQuery.size.height,
                   width: mediaQuery.size.width,
                   child: CupertinoActivityIndicator(
                     color: Get.theme.primaryColor,
                     radius: 32,
                   ),
-                )
-              : const SizedBox.shrink(),
+                ) else const SizedBox.shrink(),
         ],
       ),
     );

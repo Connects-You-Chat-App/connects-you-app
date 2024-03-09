@@ -4,6 +4,21 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
 class AppButton extends StatelessWidget {
+
+  const AppButton({
+    super.key,
+    this.text,
+    this.onPressed,
+    this.icon,
+    this.width,
+    this.height,
+    this.fontSize,
+    this.radius,
+    this.shouldApplyThemeBackground = false,
+    this.isLoading = false,
+    this.showBorder = true,
+    this.backgroundColor,
+  });
   final String? text;
   final void Function()? onPressed;
   final Widget? icon;
@@ -16,24 +31,9 @@ class AppButton extends StatelessWidget {
   final bool showBorder;
   final Color? backgroundColor;
 
-  const AppButton({
-    Key? key,
-    this.text,
-    this.onPressed,
-    this.icon,
-    this.width,
-    this.height,
-    this.fontSize,
-    this.radius,
-    this.shouldApplyThemeBackground = false,
-    this.isLoading = false,
-    this.showBorder = true,
-    this.backgroundColor,
-  }) : super(key: key);
-
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Container(
       width: width ?? double.infinity,
       height: height ?? 50.0,
@@ -47,7 +47,6 @@ class AppButton extends StatelessWidget {
                 colors: AppTheme.gradientColors,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                tileMode: TileMode.clamp,
               ),
         border: shouldApplyThemeBackground && showBorder
             ? Border.all(
@@ -56,7 +55,7 @@ class AppButton extends StatelessWidget {
               )
             : null,
         boxShadow: showBorder
-            ? [
+            ? <BoxShadow>[
                 BoxShadow(
                   color: theme.shadowColor,
                   blurRadius: 10.0,
@@ -67,7 +66,7 @@ class AppButton extends StatelessWidget {
       ),
       child: Stack(
         fit: StackFit.expand,
-        children: [
+        children: <Widget>[
           ElevatedButton(
             onPressed: onPressed,
             style: ElevatedButton.styleFrom(
@@ -79,13 +78,11 @@ class AppButton extends StatelessWidget {
               elevation: 0.0,
             ),
             child: Row(
-              children: [
-                icon != null ? icon! : const SizedBox(),
-                icon != null
-                    ? text != null
+              children: <Widget>[
+                if (icon != null) icon! else const SizedBox(),
+                if (icon != null) text != null
                         ? const SizedBox(width: 10.0)
-                        : const SizedBox()
-                    : const SizedBox(),
+                        : const SizedBox() else const SizedBox(),
                 if (!isLoading && text != null)
                   Expanded(
                     child: Text(
