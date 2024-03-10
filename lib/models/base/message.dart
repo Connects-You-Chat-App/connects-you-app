@@ -54,8 +54,8 @@ class Message {
     required this.message,
     required this.type,
     required this.isDeleted,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
     this.belongsToMessage,
     this.status = MessageStatus.SENT,
     this.forwardedFromRoomId,
@@ -92,7 +92,7 @@ class Message {
   bool isDeleted;
   String status;
   final String? forwardedFromRoomId;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final DateTime? editedAt;
 }

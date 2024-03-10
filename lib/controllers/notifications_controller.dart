@@ -6,7 +6,7 @@ import 'package:hive/hive.dart';
 
 import '../constants/hive_box_keys.dart';
 import '../models/base/notification.dart';
-import '../models/objects/shared_key_hive_object.dart';
+import '../models/objects/shared_key_collection.dart';
 import '../models/requests/join_group_request.dart';
 import '../models/responses/main.dart';
 import '../service/server.dart';

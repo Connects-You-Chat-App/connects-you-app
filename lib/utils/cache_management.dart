@@ -10,10 +10,9 @@ import '../enums/room.dart';
 import '../models/base/message.dart';
 import '../models/base/user.dart';
 import '../models/common/current_user.dart';
-import '../models/objects/message_hive_object.dart';
-import '../models/objects/room_with_room_users_hive_object.dart';
-import '../models/objects/shared_key_hive_object.dart';
-import '../models/objects/user_hive_object.dart';
+import '../models/objects/message_collection.dart';
+import '../models/objects/room_with_room_users_collection.dart';
+import '../models/objects/shared_key_collection.dart';
 import '../service/server.dart';
 import 'generate_shared_key.dart';
 

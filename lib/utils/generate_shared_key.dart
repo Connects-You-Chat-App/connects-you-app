@@ -10,7 +10,7 @@ import '../controllers/auth_controller.dart';
 import '../models/base/user.dart';
 import '../models/common/current_user.dart';
 import '../models/common/shared_key.dart';
-import '../models/objects/shared_key_hive_object.dart';
+import '../models/objects/shared_key_collection.dart';
 import '../service/server.dart';
 
 class SharedKeyResponse {

@@ -9,7 +9,7 @@ import '../constants/hive_box_keys.dart';
 import '../enums/room.dart';
 import '../models/base/user.dart';
 import '../models/common/rooms_with_room_users.dart';
-import '../models/objects/shared_key_hive_object.dart';
+import '../models/objects/shared_key_collection.dart';
 import '../models/requests/create_duet_room_request.dart';
 import '../models/requests/create_group_room_request.dart';
 import '../models/responses/main.dart';

@@ -1,32 +1,30 @@
-import 'package:hive/hive.dart';
+import 'package:isar/isar.dart';
 
 import '../common/shared_key.dart';
 
-part 'shared_key_hive_object.g.dart';
+part 'shared_key_collection.g.dart';
 
-@HiveType(typeId: 4)
-class SharedKeyHiveObject extends HiveObject {
-  SharedKeyHiveObject({
+@Collection()
+class SharedKeyCollection {
+  SharedKeyCollection({
     required this.sharedKey,
     required this.createdAt,
     required this.updatedAt,
+    this.id,
     this.forUserId,
     this.forRoomId,
   });
 
-  @HiveField(0)
-  final String sharedKey;
-  @HiveField(1)
-  final String? forUserId;
-  @HiveField(2)
-  final String? forRoomId;
-  @HiveField(3)
-  final DateTime createdAt;
-  @HiveField(4)
-  final DateTime updatedAt;
+  Id? id;
 
-  static SharedKeyHiveObject fromSharedKey(final SharedKey key) =>
-      SharedKeyHiveObject(
+  String sharedKey;
+  String? forUserId;
+  String? forRoomId;
+  DateTime createdAt;
+  DateTime updatedAt;
+
+  static SharedKeyCollection fromSharedKey(final SharedKey key) =>
+      SharedKeyCollection(
         sharedKey: key.key,
         forUserId: key.forUserId,
         forRoomId: key.forRoomId,
@@ -42,14 +40,14 @@ class SharedKeyHiveObject extends HiveObject {
         updatedAt: updatedAt,
       );
 
-  SharedKeyHiveObject copyWith({
+  SharedKeyCollection copyWith({
     final String? key,
     final String? forUserId,
     final String? forRoomId,
     final DateTime? createdAt,
     final DateTime? updatedAt,
   }) =>
-      SharedKeyHiveObject(
+      SharedKeyCollection(
         sharedKey: key ?? sharedKey,
         forUserId: forUserId ?? this.forUserId,
         forRoomId: forRoomId ?? this.forRoomId,

@@ -12,7 +12,7 @@ import '../models/base/message.dart';
 import '../models/base/user.dart';
 import '../models/common/current_user.dart';
 import '../models/common/rooms_with_room_users.dart';
-import '../models/objects/shared_key_hive_object.dart';
+import '../models/objects/shared_key_collection.dart';
 import '../models/requests/send_message_request.dart';
 import '../service/server.dart';
 import '../utils/generate_shared_key.dart';
