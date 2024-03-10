@@ -43,16 +43,31 @@ class CacheManagement {
   }
 
   Future<void> _fetchRoomsAndMessages() async {
-    final List<RoomWithRoomUsersHiveObject> rooms =
-        Hive.box<RoomWithRoomUsersHiveObject>(HiveBoxKeys.ROOMS_WITH_ROOM_USERS)
-            .values
-            .toList();
-    final List<MessageHiveObject> messages =
-        Hive.box<MessageHiveObject>(HiveBoxKeys.MESSAGES).values.toList();
-    final List<SharedKeyHiveObject> sharedKeys =
-        Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY).values.toList();
+    final Box<RoomWithRoomUsersHiveObject> roomBox =
+        Hive.box<RoomWithRoomUsersHiveObject>(
+            HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
+    final Box<List<MessageHiveObject>> messageBox =
+        Hive.box<List<MessageHiveObject>>(HiveBoxKeys.MESSAGES);
+    final Box<SharedKeyHiveObject> sharedKeyBox =
+        Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
 
-    final DateTime latestUpdatedAt = calculateLatestUpdatedAt(rooms, messages);
+    final List<RoomWithRoomUsersHiveObject> rooms = roomBox.values.toList();
+    final List<dynamic> messages = messageBox.values
+        .expand((final List<dynamic> element) => element)
+        .toList();
+    final List<SharedKeyHiveObject> sharedKeys = sharedKeyBox.values.toList();
+
+    inspect({
+      'rooms': rooms,
+      'messages': messages,
+      'sharedKeys': sharedKeys,
+    });
+
+    final AuthController authController = Get.find<AuthController>();
+    final CurrentUser user = authController.authenticatedUser!;
+
+    final DateTime latestUpdatedAt =
+        calculateLatestUpdatedAt(rooms, messages as List<MessageHiveObject>);
 
     final Map<String, dynamic> updatedData =
         await fetchUpdatedData(latestUpdatedAt);
@@ -64,19 +79,23 @@ class CacheManagement {
         updatedData['sharedKeys'] as List<dynamic>;
 
     final List<SharedKeyHiveObject> mergedSharedKeys =
-        await mergeSharedKeys(sharedKeys, latestSharedKeys);
+        await mergeSharedKeys(sharedKeys, latestSharedKeys, user.userKey!);
     final List<RoomWithRoomUsersHiveObject> mergedRooms =
         mergeRooms(rooms, latestRooms);
-    final List<MessageHiveObject> mergedMessages =
-        await mergeMessages(messages, latestMessages, mergedSharedKeys);
+    final List<MessageHiveObject> mergedMessages = await mergeMessages(
+      messages,
+      latestMessages,
+      mergedSharedKeys,
+      user,
+    );
 
-    await storeRefreshedData(mergedRooms, mergedMessages, mergedSharedKeys);
+    await storeRefreshedData(roomBox, messageBox, sharedKeyBox, mergedRooms,
+        mergedMessages, mergedSharedKeys);
     inspect({
       'mergedRooms': mergedRooms,
       'mergedMessages': mergedMessages,
       'mergedSharedKeys': mergedSharedKeys,
     });
-    // setRoomsAndMessages(mergedRooms, mergedMessages, mergedSharedKeys);
   }
 
   DateTime calculateLatestUpdatedAt(
@@ -108,60 +127,60 @@ class CacheManagement {
     final List<RoomWithRoomUsersHiveObject> rooms,
     final List<dynamic> latestRooms,
   ) {
-    final List<RoomWithRoomUsersHiveObject> mergedRooms =
-        <RoomWithRoomUsersHiveObject>[];
     final Map<String, RoomWithRoomUsersHiveObject> existingRoomsMap =
         <String, RoomWithRoomUsersHiveObject>{};
     for (final RoomWithRoomUsersHiveObject room in rooms) {
       existingRoomsMap[room.id] = room;
     }
 
-    for (final dynamic latestRoom in latestRooms) {
-      final Map<String, dynamic> latestRoomMap =
-          latestRoom as Map<String, dynamic>;
-      final RoomWithRoomUsersHiveObject? existingRoom =
-          existingRoomsMap[latestRoom['id'] as String];
-      final List<UserHiveObject> latestRoomUsers =
-          (latestRoom['roomUsers'] as List<dynamic>)
-              .map(
-                (final dynamic e) => UserHiveObject.fromUser(
-                  User.fromJson(
-                    e as Map<String, dynamic>,
-                  ),
-                ),
-              )
-              .toList();
-      if (existingRoom == null) {
-        mergedRooms.add(RoomWithRoomUsersHiveObject(
-          id: latestRoomMap['id'] as String,
-          name: latestRoomMap['name'] as String,
-          type: latestRoomMap['type'] as String,
-          createdAt: DateTime.parse(latestRoom['createdAt'] as String),
-          updatedAt: DateTime.parse(latestRoom['updatedAt'] as String),
-          roomUsers: latestRoomUsers,
-          description: latestRoomMap['description'] as String?,
-          logoUrl: latestRoomMap['logoUrl'] as String?,
-        ));
-      } else {
-        mergedRooms.add(existingRoom.copyWith(
-          name: latestRoomMap['name'] as String,
-          updatedAt: DateTime.parse(latestRoom['updatedAt'] as String),
-          roomUsers: latestRoomUsers,
-        ));
-      }
-    }
+    inspect({
+      'existingRoomsMap': existingRoomsMap,
+      'latestRooms': latestRooms,
+    });
 
-    return mergedRooms;
+    return rooms +
+        latestRooms.map((final dynamic latestRoom) {
+          final Map<String, dynamic> latestRoomMap =
+              latestRoom as Map<String, dynamic>;
+          final RoomWithRoomUsersHiveObject? existingRoom =
+              existingRoomsMap[latestRoom['id'] as String];
+          final List<UserHiveObject> latestRoomUsers =
+              (latestRoom['roomUsers'] as List<dynamic>)
+                  .map(
+                    (final dynamic e) => UserHiveObject.fromUser(
+                      User.fromJson(
+                        e as Map<String, dynamic>,
+                      ),
+                    ),
+                  )
+                  .toList();
+          if (existingRoom == null) {
+            return RoomWithRoomUsersHiveObject(
+              id: latestRoomMap['id'] as String,
+              name: latestRoomMap['name'] as String,
+              type: latestRoomMap['type'] as String,
+              createdAt: DateTime.parse(latestRoom['createdAt'] as String),
+              updatedAt: DateTime.parse(latestRoom['updatedAt'] as String),
+              roomUsers: latestRoomUsers,
+              description: latestRoomMap['description'] as String?,
+              logoUrl: latestRoomMap['logoUrl'] as String?,
+            );
+          } else {
+            return existingRoom.copyWith(
+              name: latestRoomMap['name'] as String,
+              updatedAt: DateTime.parse(latestRoom['updatedAt'] as String),
+              roomUsers: latestRoomUsers,
+            );
+          }
+        }).toList();
   }
 
   Future<List<MessageHiveObject>> mergeMessages(
     final List<MessageHiveObject> messages,
     final List<dynamic> latestMessages,
     final List<SharedKeyHiveObject> sharedKeys,
+    final CurrentUser user,
   ) async {
-    final AuthController authController = Get.find<AuthController>();
-    final CurrentUser user = authController.authenticatedUser!;
-
     final Map<String, MessageHiveObject> existingMessagesMap =
         <String, MessageHiveObject>{};
     for (final MessageHiveObject message in messages) {
@@ -193,8 +212,14 @@ class CacheManagement {
           latestMessage as Map<String, dynamic>;
       if ((latestMessageMap['room'] as Map<String, dynamic>)['type'] ==
           RoomType.DUET.name) {
-        final Map<String, dynamic> otherUser =
-            latestMessageMap['otherUser'] as Map<String, dynamic>;
+        final Map<String, dynamic> otherUser;
+        if ((latestMessageMap['senderUser'] as Map<String, dynamic>)['id'] ==
+            user.id) {
+          otherUser = latestMessageMap['otherUser'] as Map<String, dynamic>;
+        } else {
+          otherUser = latestMessageMap['senderUser'] as Map<String, dynamic>;
+        }
+
         final SharedKeyHiveObject? existingSharedKey =
             existingSharedKeyMap[otherUser['id'] as String];
         if (existingSharedKey == null &&
@@ -221,90 +246,97 @@ class CacheManagement {
       sharedKeys.add(sharedKey);
     }
 
-    return Future.wait(latestMessages.map((final dynamic latestMessage) async {
-      final Map<String, dynamic> latestMessageMap =
-          latestMessage as Map<String, dynamic>;
-      final MessageHiveObject? existingMessage =
-          existingMessagesMap[latestMessage['id'] as String];
-      final Map<String, dynamic> room =
-          latestMessageMap['room'] as Map<String, dynamic>;
-      final Map<String, dynamic> senderUser =
-          latestMessageMap['senderUser'] as Map<String, dynamic>;
-      final Map<String, dynamic> otherUser =
-          latestMessageMap['otherUser'] as Map<String, dynamic>;
-      final bool isRoomTypeDuet = room['type'] == RoomType.DUET.name;
+    return messages +
+        (await Future.wait(
+            latestMessages.map((final dynamic latestMessage) async {
+          final Map<String, dynamic> latestMessageMap =
+              latestMessage as Map<String, dynamic>;
+          final MessageHiveObject? existingMessage =
+              existingMessagesMap[latestMessage['id'] as String];
+          final Map<String, dynamic> room =
+              latestMessageMap['room'] as Map<String, dynamic>;
+          final Map<String, dynamic> otherUser;
+          if ((latestMessageMap['senderUser'] as Map<String, dynamic>)['id'] ==
+              user.id) {
+            otherUser = latestMessageMap['otherUser'] as Map<String, dynamic>;
+          } else {
+            otherUser = latestMessageMap['senderUser'] as Map<String, dynamic>;
+          }
+          final bool isRoomTypeDuet = room['type'] == RoomType.DUET.name;
 
-      final String message;
-      final bool isMessageNotEdited = existingMessage?.editedAt != null &&
-          existingMessage!.editedAt ==
-              DateTime.parse(latestMessage['editedAt'] as String);
+          final String message;
+          final bool isMessageNotEdited = existingMessage?.editedAt != null &&
+              existingMessage!.editedAt ==
+                  DateTime.parse(latestMessage['editedAt'] as String);
 
-      if (isMessageNotEdited) {
-        message = existingMessage?.message ?? '';
-      } else {
-        if (isRoomTypeDuet) {
-          message = await AesGcmEncryption(
-            secretKey:
-                existingSharedKeyMap[otherUser['id'] as String]!.sharedKey,
-          ).decryptString(latestMessageMap['message'] as String);
-        } else {
-          message = await AesGcmEncryption(
-            secretKey: existingSharedKeyMap[room['id'] as String]!.sharedKey,
-          ).decryptString(latestMessageMap['message'] as String);
-        }
-      }
-      // TODO: handle message.status when possible
-      MessageHiveObject? messageToReturn;
-      if (existingMessage == null) {
-        messageToReturn = MessageHiveObject(
-          id: latestMessageMap['id'] as String,
-          roomId: room['id'] as String,
-          senderUser: MessageUserHiveObject.fromMessageUser(
-            MessageUser.fromJson(
-              latestMessage['senderUser'] as Map<String, dynamic>,
-            ),
-          ),
-          message: message,
-          createdAt: DateTime.parse(latestMessage['createdAt'] as String),
-          updatedAt: DateTime.parse(latestMessage['updatedAt'] as String),
-          isDeleted: latestMessageMap['isDeleted'] as bool,
-          type: latestMessageMap['type'] as String,
-          belongsToMessage: latestMessageMap['belongsToMessageId'] == null
-              ? null
-              : existingMessagesMap[
-                  latestMessageMap['belongsToMessageId'] as String],
-          forwardedFromRoomId:
-              latestMessageMap['forwardedFromRoomId'] as String?,
-          editedAt: latestMessageMap['editedAt'] == null
-              ? null
-              : DateTime.parse(latestMessage['editedAt'] as String),
-          // status:
-        );
-      } else {
-        messageToReturn = existingMessage.copyWith(
-          message: message,
-          belongsToMessage: latestMessageMap['belongsToMessageId'] == null
-              ? null
-              : existingMessagesMap[
-                  latestMessageMap['belongsToMessageId'] as String],
-          forwardedFromRoomId:
-              latestMessageMap['forwardedFromRoomId'] as String?,
-          // status: ,
-          editedAt: latestMessageMap['editedAt'] == null
-              ? null
-              : DateTime.parse(latestMessage['editedAt'] as String),
-          updatedAt: DateTime.parse(latestMessage['updatedAt'] as String),
-          isDeleted: latestMessageMap['isDeleted'] as bool,
-        );
-      }
-      existingMessagesMap[messageToReturn.id] = messageToReturn;
-      return messageToReturn;
-    }));
+          if (isMessageNotEdited) {
+            message = existingMessage?.message ?? '';
+          } else {
+            if (isRoomTypeDuet) {
+              message = await AesGcmEncryption(
+                secretKey:
+                    existingSharedKeyMap[otherUser['id'] as String]!.sharedKey,
+              ).decryptString(latestMessageMap['message'] as String);
+            } else {
+              message = await AesGcmEncryption(
+                secretKey:
+                    existingSharedKeyMap[room['id'] as String]!.sharedKey,
+              ).decryptString(latestMessageMap['message'] as String);
+            }
+          }
+          // TODO: handle message.status when possible
+          MessageHiveObject? messageToReturn;
+          if (existingMessage == null) {
+            messageToReturn = MessageHiveObject(
+              id: latestMessageMap['id'] as String,
+              roomId: room['id'] as String,
+              senderUser: MessageUserHiveObject.fromMessageUser(
+                MessageUser.fromJson(
+                  latestMessage['senderUser'] as Map<String, dynamic>,
+                ),
+              ),
+              message: message,
+              createdAt: DateTime.parse(latestMessage['createdAt'] as String),
+              updatedAt: DateTime.parse(latestMessage['updatedAt'] as String),
+              isDeleted: latestMessageMap['isDeleted'] as bool,
+              type: latestMessageMap['type'] as String,
+              belongsToMessage: latestMessageMap['belongsToMessageId'] == null
+                  ? null
+                  : existingMessagesMap[
+                      latestMessageMap['belongsToMessageId'] as String],
+              forwardedFromRoomId:
+                  latestMessageMap['forwardedFromRoomId'] as String?,
+              editedAt: latestMessageMap['editedAt'] == null
+                  ? null
+                  : DateTime.parse(latestMessage['editedAt'] as String),
+              // status:
+            );
+          } else {
+            messageToReturn = existingMessage.copyWith(
+              message: message,
+              belongsToMessage: latestMessageMap['belongsToMessageId'] == null
+                  ? null
+                  : existingMessagesMap[
+                      latestMessageMap['belongsToMessageId'] as String],
+              forwardedFromRoomId:
+                  latestMessageMap['forwardedFromRoomId'] as String?,
+              // status: ,
+              editedAt: latestMessageMap['editedAt'] == null
+                  ? null
+                  : DateTime.parse(latestMessage['editedAt'] as String),
+              updatedAt: DateTime.parse(latestMessage['updatedAt'] as String),
+              isDeleted: latestMessageMap['isDeleted'] as bool,
+            );
+          }
+          existingMessagesMap[messageToReturn.id] = messageToReturn;
+          return messageToReturn;
+        })));
   }
 
   Future<List<SharedKeyHiveObject>> mergeSharedKeys(
     final List<SharedKeyHiveObject> sharedKeys,
     final List<dynamic> latestSharedKeys,
+    final String userKey,
   ) async {
     final List<SharedKeyHiveObject> mergedSharedKeys = <SharedKeyHiveObject>[];
     final Map<String, SharedKeyHiveObject> existingSharedKeysMap =
@@ -321,8 +353,7 @@ class CacheManagement {
       final SharedKeyHiveObject? existingSharedKey = existingSharedKeysMap[
               latestSharedKey['forUserId'] as String? ?? ''] ??
           existingSharedKeysMap[latestSharedKey['forRoomId'] as String? ?? ''];
-      final LazyBox<dynamic> commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
-      final String userKey = await commonBox.get('USER_KEY') as String;
+
       final String decryptedSharedKey = await AesGcmEncryption(
         secretKey: userKey,
       ).decryptString(latestSharedKeyMap['key'] as String);
@@ -344,24 +375,48 @@ class CacheManagement {
   }
 
   Future<void> storeRefreshedData(
+    final Box<RoomWithRoomUsersHiveObject> roomBox,
+    final Box<List<MessageHiveObject>> messageBox,
+    final Box<SharedKeyHiveObject> sharedKeyBox,
     final List<RoomWithRoomUsersHiveObject> rooms,
     final List<MessageHiveObject> messages,
     final List<SharedKeyHiveObject> sharedKeys,
   ) async {
-    final Box<RoomWithRoomUsersHiveObject> roomBox =
-        Hive.box<RoomWithRoomUsersHiveObject>(
-            HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-    final Box<MessageHiveObject> messageBox =
-        Hive.box<MessageHiveObject>(HiveBoxKeys.MESSAGES);
-    final Box<SharedKeyHiveObject> sharedKeyBox =
-        Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
-
     await roomBox.clear();
     await messageBox.clear();
     await sharedKeyBox.clear();
 
-    await roomBox.addAll(rooms);
-    await messageBox.addAll(messages);
-    await sharedKeyBox.addAll(sharedKeys);
+    final Map<String, List<MessageHiveObject>> messageMap =
+        <String, List<MessageHiveObject>>{};
+    for (final MessageHiveObject message in messages) {
+      if (messageMap.containsKey(message.roomId)) {
+        messageMap[message.roomId]!.add(message);
+      } else {
+        messageMap[message.roomId] = <MessageHiveObject>[message];
+      }
+    }
+
+    final Map<String, SharedKeyHiveObject> sharedKeyMap =
+        <String, SharedKeyHiveObject>{};
+    for (final SharedKeyHiveObject sharedKey in sharedKeys) {
+      if (sharedKey.forUserId != null) {
+        sharedKeyMap[sharedKey.forUserId!] = sharedKey;
+      }
+      if (sharedKey.forRoomId != null) {
+        sharedKeyMap[sharedKey.forRoomId!] = sharedKey;
+      }
+    }
+
+    await Future.wait([
+      roomBox.addAll(rooms),
+      messageBox.putAll(messageMap),
+      sharedKeyBox.putAll(sharedKeyMap)
+    ]);
+
+    await Future.wait([
+      roomBox.flush(),
+      messageBox.flush(),
+      sharedKeyBox.flush(),
+    ]);
   }
 }

@@ -9,7 +9,7 @@ import '../models/base/notification.dart';
 import '../models/base/user.dart';
 import '../models/common/rooms_with_room_users.dart';
 import 'notifications_controller.dart';
-import 'room_controller.dart';
+import 'rooms_controller.dart';
 
 enum SocketConnectionState { connected, connecting, disconnected }
 
@@ -86,7 +86,7 @@ class SocketController extends GetxController {
     socket.on(SocketEvents.USER_PRESENCE,
         (final dynamic data) => <void>{debugPrint(data.toString())});
     socket.on(SocketEvents.DUET_ROOM_CREATED, (final dynamic data) {
-      Get.find<RoomController>().addNewlyCreatedDuetRoom(
+      Get.find<RoomsController>().addNewlyCreatedDuetRoom(
           RoomWithRoomUsers.fromJson(data as Map<String, dynamic>));
     });
     socket.on(SocketEvents.GROUP_INVITATION, (final dynamic data) {
@@ -94,7 +94,7 @@ class SocketController extends GetxController {
           .addNotification(Notification.fromJson(data as Map<String, dynamic>));
     });
     socket.on(SocketEvents.GROUP_JOINED, (final dynamic data) {
-      Get.find<RoomController>().addUserToRoom(
+      Get.find<RoomsController>().addUserToRoom(
           (data as Map<String, String>)['roomId']!,
           User.fromJson((data as Map<String, Map<String, dynamic>>)['user']!));
     });

@@ -30,7 +30,7 @@ class RootController extends GetxController {
     await Hive.box<RoomWithRoomUsersHiveObject>(
             HiveBoxKeys.ROOMS_WITH_ROOM_USERS)
         .flush();
-    await Hive.box<MessageHiveObject>(HiveBoxKeys.MESSAGES).flush();
+    await Hive.box<List<MessageHiveObject>>(HiveBoxKeys.MESSAGES).flush();
   }
 
   Future openBoxes() async {
@@ -45,7 +45,7 @@ class RootController extends GetxController {
       Hive.openBox<RoomWithRoomUsersHiveObject>(
           HiveBoxKeys.ROOMS_WITH_ROOM_USERS,
           encryptionCipher: hiveCipher),
-      Hive.openBox<MessageHiveObject>(HiveBoxKeys.MESSAGES,
+      Hive.openBox<List<MessageHiveObject>>(HiveBoxKeys.MESSAGES,
           encryptionCipher: hiveCipher),
     ]);
   }

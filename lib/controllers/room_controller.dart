@@ -1,141 +1,116 @@
-import 'package:get/get.dart' hide Response;
+import 'dart:developer';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_cryptography/aes_gcm_encryption.dart';
+import 'package:flutter_cryptography/helper.dart';
+import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
 import '../constants/hive_box_keys.dart';
+import '../enums/room.dart';
 import '../models/base/message.dart';
 import '../models/base/user.dart';
+import '../models/common/current_user.dart';
 import '../models/common/rooms_with_room_users.dart';
-import '../models/common/shared_key.dart';
-import '../models/objects/room_with_room_users_hive_object.dart';
 import '../models/objects/shared_key_hive_object.dart';
-import '../models/responses/main.dart';
+import '../models/requests/send_message_request.dart';
 import '../service/server.dart';
 import '../utils/generate_shared_key.dart';
-import '../widgets/screens/room/room_screen.dart';
+import 'auth_controller.dart';
+import 'rooms_controller.dart';
 
 class RoomController extends GetxController {
-  final RxList<RoomWithRoomUsers> _rooms = <RoomWithRoomUsers>[].obs;
-  final RxMap<String, List<Message>> _roomMessages =
-      <String, List<Message>>{}.obs;
+  late final RoomWithRoomUsers room;
 
-  List<RoomWithRoomUsers> get rooms => _rooms;
+  late final TextEditingController messageController;
 
-  @override
-  void onInit() {
-    super.onInit();
-    fetchRooms();
-  }
+  late final RoomsController _roomsController;
+  late final String _sharedKey;
 
-  Future<void> fetchRooms({final bool fromServer = false}) async {
-    if (fromServer) {
-      final Response<List<RoomWithRoomUsers>> response =
-          await ServerApi.roomService.fetchRooms();
-      _rooms.value = response.response;
-      final Box<RoomWithRoomUsersHiveObject> roomsBox =
-          Hive.box<RoomWithRoomUsersHiveObject>(
-              HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-      await roomsBox.clear();
-      await roomsBox.addAll(response.response.map((final RoomWithRoomUsers e) =>
-          RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(e)));
-    } else {
-      final Box<RoomWithRoomUsersHiveObject> roomsBox =
-          Hive.box<RoomWithRoomUsersHiveObject>(
-              HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-      _rooms.value = roomsBox.values
-          .map((final RoomWithRoomUsersHiveObject e) => e.toRoomWithRoomUsers())
-          .toList();
-    }
-  }
-
-  Future<void> addRoom(final RoomWithRoomUsers room) async {
-    _rooms.insert(0, room);
-    final Box<RoomWithRoomUsersHiveObject> box =
-        Hive.box<RoomWithRoomUsersHiveObject>(
-            HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-    if (box.isEmpty) {
-      await box.add(RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
-    } else {
-      await box.putAt(
-          0, RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
-    }
-  }
-
-  Future<void> addUserToRoom(final String roomId, final User user) async {
-    final int index = _rooms
-        .indexWhere((final RoomWithRoomUsers element) => element.id == roomId);
-    if (index != -1) {
-      _rooms[index].roomUsers.add(user);
-      final Box<RoomWithRoomUsersHiveObject> box =
-          Hive.box<RoomWithRoomUsersHiveObject>(
-              HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-      await box.putAt(index,
-          RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(_rooms[index]));
-    }
-  }
-
-  Future<void> addNewlyCreatedDuetRoom(final RoomWithRoomUsers room) async {
-    final User otherUser = room.roomUsers[0];
-    final SharedKeyResponse? sharedKey =
-        await generateEncryptedSharedKey(otherUser.publicKey);
+  Future _extractSharedKey() async {
+    final AuthController authController = Get.find<AuthController>();
+    final CurrentUser currentUser = authController.authenticatedUser!;
     final Box<SharedKeyHiveObject> sharedKeyBox =
         Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
-    final bool sharedKeyExists = sharedKey != null;
-    await Future.wait(<Future<void>>[
-      addRoom(room),
-      if (sharedKeyExists)
-        sharedKeyBox.put(
-          otherUser.id,
-          SharedKeyHiveObject(
-            sharedKey: sharedKey.key,
-            forUserId: otherUser.id,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        ),
-      if (sharedKeyExists)
-        ServerApi.sharedKeyService.saveKey(
-          SharedKey(
-            key: sharedKey.encryptedKey,
-            forUserId: otherUser.id,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        )
-    ]);
 
-    final Box<RoomWithRoomUsersHiveObject> box =
-        Hive.box<RoomWithRoomUsersHiveObject>(
-            HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-    await box.add(RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
-  }
+    inspect(sharedKeyBox.values.toList());
+    inspect(room.roomUsers);
 
-  void redirectToRoom(final int index) {
-    Get.toNamed<void>(
-      '${RoomScreen.routeName}/${_rooms[index].id}',
-      arguments: <String, RoomWithRoomUsers>{
-        'room': _rooms[index],
-      },
-    );
-  }
+    if (room.type == RoomType.DUET) {
+      final User otherUser = room.roomUsers.firstWhere(
+        (final User user) => user.id != currentUser.id,
+      );
+      final SharedKeyHiveObject? sharedKey = sharedKeyBox.get(otherUser.id);
 
-  void addMessageToRoom(final Message message) {
-    final int index = _rooms.indexWhere(
-        (final RoomWithRoomUsers element) => element.id == message.roomId);
-    if (index != -1) {
-      if (_roomMessages.containsKey(message.roomId)) {
-        _roomMessages[message.roomId]!.add(message);
+      if (sharedKey == null) {
+        final List<UserWiseSharedKeyResponse> sharedKeyRes =
+            await getSharedKeyWithOtherUsers([otherUser], force: true);
+        if (sharedKeyRes.first?.sharedKey == null) {
+          return;
+        }
+        _sharedKey = sharedKeyRes.first.sharedKey;
       } else {
-        _roomMessages[message.roomId] = <Message>[message];
+        _sharedKey = sharedKey!.sharedKey;
       }
+      return;
     }
+    _sharedKey = sharedKeyBox.get(room.id)!.sharedKey;
+    return;
   }
 
-  void updateMessageStatus(
-      final String roomId, final String messageId, final String messageStatus) {
-    final int messageIndex = _roomMessages[roomId]!
-        .lastIndexWhere((final Message element) => element.id == messageId);
-    if (messageIndex != -1) {
-      _roomMessages[roomId]![messageIndex].status = messageStatus;
-    }
+  @override
+  Future<void> onInit() async {
+    super.onInit();
+    room = Get.arguments['room'] as RoomWithRoomUsers;
+    messageController = TextEditingController();
+    await _extractSharedKey();
+    _roomsController = Get.find<RoomsController>();
+  }
+
+  @override
+  void onClose() {
+    messageController.dispose();
+    super.onClose();
+  }
+
+  Future<String> encryptMessage(final String message) {
+    return AesGcmEncryption(secretKey: _sharedKey).encryptString(message);
+  }
+
+  Future sendMessage({
+    required final String message,
+    required final String type,
+    final Message? belongsToMessage,
+  }) async {
+    final AuthController authController = Get.find<AuthController>();
+    final CurrentUser currentUser = authController.authenticatedUser!;
+    final String encryptedMessage = await encryptMessage(message);
+    final Message messageObj = Message(
+      id: randomUUID(),
+      roomId: room.id,
+      senderUser: MessageUser(
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        photoUrl: currentUser.photoUrl,
+      ),
+      message: encryptedMessage,
+      type: type,
+      isDeleted: false,
+      belongsToMessage: belongsToMessage,
+      status: MessageStatus.PENDING,
+      createdAt: DateTime.now().toUtc(),
+      updatedAt: DateTime.now().toUtc(),
+    );
+
+    _roomsController.addMessageToRoom(messageObj);
+
+    await ServerApi.messageService.sendMessage(SendMessageRequest(
+      messageId: messageObj.id,
+      roomId: messageObj.roomId,
+      message: messageObj.message,
+      type: messageObj.type,
+      belongsToMessageId: messageObj.belongsToMessage?.id,
+    ));
   }
 }

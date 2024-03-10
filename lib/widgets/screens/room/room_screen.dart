@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../controllers/room_controller_old.dart';
+import '../../../controllers/room_controller.dart';
 import '../../../models/base/message.dart';
 import '../../common/screen_container.dart';
 
 class RoomScreen extends StatelessWidget {
   RoomScreen({super.key}) {
-    _roomController = Get.put(RoomControllerOld());
+    _roomController = Get.put(RoomController());
   }
 
   static const String routeName = '/room';
 
-  late final RoomControllerOld _roomController;
+  late final RoomController _roomController;
 
   @override
   Widget build(final BuildContext context) {

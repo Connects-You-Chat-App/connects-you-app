@@ -6,7 +6,7 @@ import '../widgets/screens/home/screens/account_details/account_details_screen.d
 import '../widgets/screens/home/screens/inbox/inbox_screen.dart';
 import '../widgets/screens/home/screens/notification/notification_screen.dart';
 import 'notifications_controller.dart';
-import 'room_controller.dart';
+import 'rooms_controller.dart';
 
 class HomeController extends GetxController {
   late final List<StatelessWidget> screens;
@@ -29,7 +29,7 @@ class HomeController extends GetxController {
       const NotificationScreen(),
       const AccountDetailsScreen(),
     ];
-    Get.put(RoomController());
+    Get.put(RoomsController());
     Get.put(NotificationsController());
     _controller = PageController(initialPage: _currentIndex.value);
     super.onInit();

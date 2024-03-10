@@ -6,7 +6,6 @@ import 'package:hive/hive.dart';
 
 import '../constants/hive_box_keys.dart';
 import '../models/base/notification.dart';
-import '../models/common/shared_key.dart';
 import '../models/objects/shared_key_hive_object.dart';
 import '../models/requests/join_group_request.dart';
 import '../models/responses/main.dart';
@@ -14,7 +13,7 @@ import '../service/server.dart';
 import '../utils/generate_shared_key.dart';
 import '../widgets/screens/home/screens/inbox/inbox_screen.dart';
 import 'home_controller.dart';
-import 'room_controller.dart';
+import 'rooms_controller.dart';
 
 class NotificationsController extends GetxController {
   final RxList<Notification> _notifications = <Notification>[].obs;
@@ -38,30 +37,14 @@ class NotificationsController extends GetxController {
     String? sharedKeyWithSender =
         sharedKeyBox.get(notification.senderUser.id)?.sharedKey;
     if (sharedKeyWithSender == null) {
-      final SharedKeyResponse? value =
-          await generateEncryptedSharedKey(notification.senderUser.publicKey);
-      if (value == null) {
-        log('Shared key is null');
+      final List<UserWiseSharedKeyResponse> value =
+          await getSharedKeyWithOtherUsers([notification.senderUser],
+              force: true);
+      if (value.isEmpty) {
+        log('Shared key is empty');
         return;
       }
-      final SharedKeyHiveObject sharedKeyHiveObject = SharedKeyHiveObject(
-        sharedKey: value.key,
-        forUserId: notification.senderUser.id,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      await Future.wait(<Future<void>>[
-        sharedKeyBox.put(notification.senderUser.id, sharedKeyHiveObject),
-        ServerApi.sharedKeyService.saveKey(
-          SharedKey(
-            key: value.encryptedKey,
-            forUserId: notification.senderUser.id,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        ),
-      ]);
-      sharedKeyWithSender = value.key;
+      sharedKeyWithSender = value.first.sharedKey;
     }
     final String roomSecretKey =
         await AesGcmEncryption(secretKey: sharedKeyWithSender)
@@ -77,7 +60,7 @@ class NotificationsController extends GetxController {
     ));
 
     _notifications.removeAt(index);
-    final RoomController inboxController = Get.find<RoomController>();
+    final RoomsController inboxController = Get.find<RoomsController>();
     final HomeController homeController = Get.find<HomeController>();
     await inboxController.fetchRooms(fromServer: true);
     homeController.navigate(InboxScreen.routeName);

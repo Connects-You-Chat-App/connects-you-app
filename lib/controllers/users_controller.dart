@@ -16,7 +16,7 @@ import '../models/responses/main.dart';
 import '../service/server.dart';
 import '../utils/generate_shared_key.dart';
 import '../widgets/screens/room/room_screen.dart';
-import 'room_controller.dart';
+import 'rooms_controller.dart';
 
 class UsersController extends GetxController {
   final RxList<User> _users = <User>[].obs;
@@ -69,7 +69,7 @@ class UsersController extends GetxController {
     if (response.response != null) {
       clearSelectedUsers();
       if (response.response!.isNewlyCreatedRoom) {
-        await Get.find<RoomController>().addRoom(response.response!);
+        await Get.find<RoomsController>().addRoom(response.response!);
       }
       Get.toNamed<void>('${RoomScreen.routeName}/${response.response!.id}',
           arguments: <String, RoomWithRoomUsers?>{
@@ -81,7 +81,7 @@ class UsersController extends GetxController {
   }
 
   RoomWithRoomUsers? findDuetRoomFromState(final int index) {
-    return Get.find<RoomController>()
+    return Get.find<RoomsController>()
         .rooms
         .firstWhereOrNull((final RoomWithRoomUsers element) {
       if (element.type == RoomType.DUET) {

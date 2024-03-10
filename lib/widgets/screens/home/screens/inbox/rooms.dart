@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../../constants/locale.dart';
-import '../../../../../controllers/room_controller.dart';
+import '../../../../../controllers/rooms_controller.dart';
 import '../../../../../enums/room.dart';
 import '../../../../../models/common/rooms_with_room_users.dart';
 import '../../../../common/avatar.dart';
 
-class Rooms extends GetView<RoomController> {
+class Rooms extends GetView<RoomsController> {
   const Rooms({super.key});
 
   @override

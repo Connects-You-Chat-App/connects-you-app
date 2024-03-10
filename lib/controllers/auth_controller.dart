@@ -112,7 +112,10 @@ class AuthController extends GetxController {
       if (currentUser == null) {
         throw const CustomException(errorMessage: 'currentUser is null');
       }
-      _authenticatedUser.value = currentUser.toCurrentUser();
+      final CurrentUser user = currentUser.toCurrentUser();
+      user.userKey = await _commonBox.get('USER_KEY') as String;
+      _authenticatedUser.value = user;
+
       await Future.delayed(const Duration(seconds: 1));
       afterAuthenticated();
       const CacheManagement().initializeCache();
@@ -147,6 +150,7 @@ class AuthController extends GetxController {
       publicKey: user.publicKey,
       privateKey: decryptedPrivateKey,
       token: user.token,
+      userKey: userDriveResponse,
     );
 
     final [_, _, Response<List<SharedKey>> keys as Response<List<SharedKey>>] =
@@ -166,11 +170,12 @@ class AuthController extends GetxController {
         key.forUserId ?? key.forRoomId,
         SharedKeyHiveObject.fromSharedKey(
           SharedKey(
-              key: decryptedKey,
-              forUserId: key.forUserId,
-              forRoomId: key.forRoomId,
-              createdAt: key.createdAt,
-              updatedAt: key.updatedAt),
+            key: decryptedKey,
+            forUserId: key.forUserId,
+            forRoomId: key.forRoomId,
+            createdAt: key.createdAt,
+            updatedAt: key.updatedAt,
+          ),
         ),
       );
     }));
@@ -203,6 +208,7 @@ class AuthController extends GetxController {
       publicKey: publicKey,
       privateKey: privateKey,
       token: user.token,
+      userKey: userSecretKey,
     );
 
     await Future.wait(<Future<void>>[

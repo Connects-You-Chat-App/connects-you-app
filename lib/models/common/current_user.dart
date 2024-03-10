@@ -10,8 +10,11 @@ class CurrentUser extends User {
     super.photoUrl,
     super.description,
     this.privateKey,
+    this.userKey,
   });
 
   final String? privateKey;
   final String token;
+
+  String? userKey;
 }
