@@ -15,15 +15,15 @@ class SharedKeyHiveObject extends HiveObject {
   });
 
   @HiveField(0)
-  final String sharedKey;
+  String sharedKey;
   @HiveField(1)
-  final String? forUserId;
+  String? forUserId;
   @HiveField(2)
-  final String? forRoomId;
+  String? forRoomId;
   @HiveField(3)
-  final DateTime createdAt;
+  DateTime createdAt;
   @HiveField(4)
-  final DateTime updatedAt;
+  DateTime updatedAt;
 
   static SharedKeyHiveObject fromSharedKey(final SharedKey key) =>
       SharedKeyHiveObject(

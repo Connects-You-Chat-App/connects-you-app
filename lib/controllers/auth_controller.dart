@@ -80,10 +80,12 @@ class AuthController extends GetxController {
   late final LazyBox _commonBox;
 
   late SocketController _socketController;
+  late RootController _rootController;
 
   @override
   Future<void> onInit() async {
-    await Get.find<RootController>().initializeApp();
+    _rootController = Get.find<RootController>();
+    await _rootController.initializeApp();
     _currentUserBox = Hive.lazyBox<CurrentUserHiveObject>(
       HiveBoxKeys.CURRENT_USER,
     );
@@ -118,7 +120,7 @@ class AuthController extends GetxController {
 
       await Future.delayed(const Duration(seconds: 1));
       afterAuthenticated();
-      const CacheManagement().initializeCache();
+      await const CacheManagement().initializeCache();
     } catch (error) {
       await SecureStorage.deleteAll();
     }
@@ -179,6 +181,8 @@ class AuthController extends GetxController {
         ),
       );
     }));
+
+    await const CacheManagement().initializeCache();
   }
 
   Future _onSignup(final CurrentUser user) async {
@@ -308,10 +312,13 @@ class AuthController extends GetxController {
     _authState.value = AuthStates.inProgress;
     final Response<bool>? signOutResponse =
         await ServerApi.authService.signOut();
-    await _currentUserBox.clear();
-    await SecureStorage.deleteAll();
     _googleSignIn.signOut();
     _auth.signOut();
+    await Hive.deleteFromDisk();
+    await Hive.close();
+    await _rootController.initializeApp(
+        shouldRegisterAdapters:
+            false); // TODO: fix the issue of not hive box opended on signout.
     Get.offAllNamed(SplashScreen.routeName);
     await Future.delayed(const Duration(seconds: 1));
     _authenticatedUser.value = null;

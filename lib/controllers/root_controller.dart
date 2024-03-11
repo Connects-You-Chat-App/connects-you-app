@@ -30,7 +30,7 @@ class RootController extends GetxController {
     await Hive.box<RoomWithRoomUsersHiveObject>(
             HiveBoxKeys.ROOMS_WITH_ROOM_USERS)
         .flush();
-    await Hive.box<List<MessageHiveObject>>(HiveBoxKeys.MESSAGES).flush();
+    await Hive.box<List<dynamic>>(HiveBoxKeys.MESSAGES).flush();
   }
 
   Future openBoxes() async {
@@ -45,18 +45,21 @@ class RootController extends GetxController {
       Hive.openBox<RoomWithRoomUsersHiveObject>(
           HiveBoxKeys.ROOMS_WITH_ROOM_USERS,
           encryptionCipher: hiveCipher),
-      Hive.openBox<List<MessageHiveObject>>(HiveBoxKeys.MESSAGES,
+      Hive.openBox<List<dynamic>>(HiveBoxKeys.MESSAGES,
           encryptionCipher: hiveCipher),
     ]);
   }
 
-  Future initializeApp() async {
+  Future initializeApp({final bool shouldRegisterAdapters = true}) async {
     await initializeAppIfNotAlready();
     final Directory directory =
         await pathProvider.getApplicationDocumentsDirectory();
     Hive.init(directory.path);
-    registerAdapters();
+    if (shouldRegisterAdapters) {
+      registerAdapters();
+    }
     await openBoxes();
+    // await Hive.deleteFromDisk();
     print("Hive boxes opened");
   }
 

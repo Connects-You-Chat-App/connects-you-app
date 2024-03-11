@@ -16,17 +16,17 @@ class UserHiveObject extends HiveObject {
   });
 
   @HiveField(0)
-  late String id;
+  String id;
   @HiveField(1)
-  late String name;
+  String name;
   @HiveField(2)
-  late String email;
+  String email;
   @HiveField(3)
-  late String? photoUrl;
+  String? photoUrl;
   @HiveField(4)
-  late String publicKey;
+  String publicKey;
   @HiveField(5)
-  late String? description;
+  String? description;
 
   static UserHiveObject fromUser(final User user) => UserHiveObject(
         id: user.id,

@@ -21,21 +21,21 @@ class RoomWithRoomUsersHiveObject extends HiveObject {
   });
 
   @HiveField(0)
-  late String id;
+  String id;
   @HiveField(1)
-  late String name;
+  String name;
   @HiveField(2)
-  late String type;
+  String type;
   @HiveField(3)
-  late String? description;
+  String? description;
   @HiveField(4)
-  late String? logoUrl;
+  String? logoUrl;
   @HiveField(5)
-  late DateTime createdAt;
+  DateTime createdAt;
   @HiveField(6)
-  late DateTime updatedAt;
+  DateTime updatedAt;
   @HiveField(7)
-  late List<UserHiveObject> roomUsers;
+  List<UserHiveObject> roomUsers;
 
   static RoomWithRoomUsersHiveObject fromRoomWithRoomUsers(
           final RoomWithRoomUsers room) =>

@@ -6,27 +6,30 @@ part 'current_user_hive_object.g.dart';
 
 @HiveType(typeId: 0)
 class CurrentUserHiveObject extends HiveObject {
-
   CurrentUserHiveObject({
     required this.id,
     required this.name,
     required this.email,
-    required this.publicKey, required this.privateKey, required this.token, this.photoUrl,
+    required this.publicKey,
+    required this.privateKey,
+    required this.token,
+    this.photoUrl,
   });
+
   @HiveField(0)
-  late String id;
+  String id;
   @HiveField(1)
-  late String name;
+  String name;
   @HiveField(2)
-  late String email;
+  String email;
   @HiveField(3)
-  late String? photoUrl;
+  String? photoUrl;
   @HiveField(4)
-  late String publicKey;
+  String publicKey;
   @HiveField(5)
-  late String privateKey;
+  String privateKey;
   @HiveField(6)
-  late String token;
+  String token;
 
   static CurrentUserHiveObject fromCurrentUser(final CurrentUser user) =>
       CurrentUserHiveObject(

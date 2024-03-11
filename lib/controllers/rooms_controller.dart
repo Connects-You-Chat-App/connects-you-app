@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:get/get.dart' hide Response;
 import 'package:hive/hive.dart';
 
@@ -20,14 +22,14 @@ class RoomsController extends GetxController {
   List<RoomWithRoomUsers> get rooms => _rooms;
 
   late final Box<RoomWithRoomUsersHiveObject> _roomsBox;
-  late final Box<List<MessageHiveObject>> _messagesBox;
+  late final Box<List<dynamic>> _messagesBox;
 
   @override
   void onInit() {
     super.onInit();
     _roomsBox = Hive.box<RoomWithRoomUsersHiveObject>(
         HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-    _messagesBox = Hive.box<List<MessageHiveObject>>(HiveBoxKeys.MESSAGES);
+    _messagesBox = Hive.box<List<dynamic>>(HiveBoxKeys.MESSAGES);
     fetchRooms();
   }
 
@@ -95,7 +97,7 @@ class RoomsController extends GetxController {
     if (index != -1) {
       if (_roomMessages.containsKey(message.roomId)) {
         _roomMessages[message.roomId]!.add(message);
-        final List<MessageHiveObject> messages =
+        final List<dynamic> messages =
             _messagesBox.get(message.roomId) ?? <MessageHiveObject>[];
         messages.add(MessageHiveObject.fromMessage(message));
         await _messagesBox.put(message.roomId, messages);
@@ -113,10 +115,12 @@ class RoomsController extends GetxController {
     if (_roomMessages.containsKey(roomId)) {
       return _roomMessages[roomId]!;
     } else {
-      final List<MessageHiveObject> messages =
+      final List<dynamic> messages =
           _messagesBox.get(roomId) ?? <MessageHiveObject>[];
-      _roomMessages[roomId] =
-          messages.map((final MessageHiveObject e) => e.toMessage()).toList();
+      _roomMessages[roomId] = List<MessageHiveObject>.from(messages)
+          .map((final MessageHiveObject e) => e.toMessage())
+          .toList();
+      inspect(_roomMessages[roomId]!);
       return _roomMessages[roomId]!;
     }
   }

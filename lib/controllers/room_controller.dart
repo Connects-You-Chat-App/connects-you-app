@@ -94,7 +94,7 @@ class RoomController extends GetxController {
         email: currentUser.email,
         photoUrl: currentUser.photoUrl,
       ),
-      message: encryptedMessage,
+      message: message,
       type: type,
       isDeleted: false,
       belongsToMessage: belongsToMessage,
@@ -103,12 +103,12 @@ class RoomController extends GetxController {
       updatedAt: DateTime.now().toUtc(),
     );
 
-    _roomsController.addMessageToRoom(messageObj);
+    // _roomsController.addMessageToRoom(messageObj);
 
     await ServerApi.messageService.sendMessage(SendMessageRequest(
       messageId: messageObj.id,
       roomId: messageObj.roomId,
-      message: messageObj.message,
+      message: encryptedMessage,
       type: messageObj.type,
       belongsToMessageId: messageObj.belongsToMessage?.id,
     ));

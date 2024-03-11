@@ -14,13 +14,13 @@ class MessageUserHiveObject extends HiveObject {
   });
 
   @HiveField(0)
-  late String id;
+  String id;
   @HiveField(1)
-  late String name;
+  String name;
   @HiveField(2)
-  late String email;
+  String email;
   @HiveField(3)
-  late String? photoUrl;
+  String? photoUrl;
 
   static MessageUserHiveObject fromMessageUser(final MessageUser user) =>
       MessageUserHiveObject(
@@ -56,29 +56,29 @@ class MessageHiveObject extends HiveObject {
   });
 
   @HiveField(0)
-  late String id;
+  String id;
   @HiveField(1)
-  late String roomId;
+  String roomId;
   @HiveField(2)
-  late MessageUserHiveObject senderUser;
+  MessageUserHiveObject senderUser;
   @HiveField(3)
-  late String message;
+  String message;
   @HiveField(4)
-  late String type;
+  String type;
   @HiveField(5)
-  late bool isDeleted;
+  bool isDeleted;
   @HiveField(6)
-  late DateTime createdAt;
+  DateTime createdAt;
   @HiveField(7)
-  late DateTime updatedAt;
+  DateTime updatedAt;
   @HiveField(8)
-  late MessageHiveObject? belongsToMessage;
+  MessageHiveObject? belongsToMessage;
   @HiveField(9)
-  late String status;
+  String status;
   @HiveField(10)
-  late String? forwardedFromRoomId;
+  String? forwardedFromRoomId;
   @HiveField(11)
-  late DateTime? editedAt;
+  DateTime? editedAt;
 
   static MessageHiveObject fromMessage(final Message user) => MessageHiveObject(
         id: user.id,
