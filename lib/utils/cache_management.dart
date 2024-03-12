@@ -50,9 +50,10 @@ class CacheManagement {
         Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
 
     final List<RoomWithRoomUsersHiveObject> rooms = roomBox.values.toList();
-    final messages = List<MessageHiveObject>.from(messageBox.values
-        .expand((final List<dynamic> element) => element)
-        .toList());
+    final List<MessageHiveObject> messages = List<MessageHiveObject>.from(
+        messageBox.values
+            .expand((final List<dynamic> element) => element)
+            .toList());
     final List<SharedKeyHiveObject> sharedKeys = sharedKeyBox.values.toList();
 
     final AuthController authController = Get.find<AuthController>();
@@ -90,17 +91,17 @@ class CacheManagement {
     final List<MessageHiveObject> messages,
   ) {
     DateTime latestUpdatedAt = DateTime.utc(2024);
-    // for (final RoomWithRoomUsersHiveObject room in rooms) {
-    //   if (room.updatedAt.isAfter(latestUpdatedAt)) {
-    //     latestUpdatedAt = room.updatedAt;
-    //   }
-    // }
-    // for (final MessageHiveObject message
-    //     in List<MessageHiveObject>.from(messages)) {
-    //   if (message.updatedAt.isAfter(latestUpdatedAt)) {
-    //     latestUpdatedAt = message.updatedAt;
-    //   }
-    // }
+    for (final RoomWithRoomUsersHiveObject room in rooms) {
+      if (room.updatedAt.isAfter(latestUpdatedAt)) {
+        latestUpdatedAt = room.updatedAt;
+      }
+    }
+    for (final MessageHiveObject message
+        in List<MessageHiveObject>.from(messages)) {
+      if (message.updatedAt.isAfter(latestUpdatedAt)) {
+        latestUpdatedAt = message.updatedAt;
+      }
+    }
     return latestUpdatedAt;
   }
 

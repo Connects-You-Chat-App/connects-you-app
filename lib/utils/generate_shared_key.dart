@@ -44,14 +44,15 @@ Future<SharedKeyResponse?> generateEncryptedSharedKey(
 
   final String sharedKey =
       await dh.calculateSharedKey(bobPublicKey: otherUserPublicKey);
-  final LazyBox<dynamic> commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
-  final String userKey = await commonBox.get('USER_KEY')
-      as String; // TODO: add user key in current user object and use it instead of this
+
+  if (user.userKey == null) {
+    throw Exception('User key is null');
+  }
 
   return SharedKeyResponse(
     key: sharedKey,
-    encryptedKey:
-        await AesGcmEncryption(secretKey: userKey).encryptString(sharedKey),
+    encryptedKey: await AesGcmEncryption(secretKey: user.userKey!)
+        .encryptString(sharedKey),
   );
 }
 

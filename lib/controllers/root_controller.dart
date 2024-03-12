@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:get/get.dart';
@@ -50,14 +51,22 @@ class RootController extends GetxController {
     ]);
   }
 
-  Future initializeApp({final bool shouldRegisterAdapters = true}) async {
+  Future clearAllBoxes() async {
+    await Hive.lazyBox(HiveBoxKeys.COMMON_BOX).clear();
+    await Hive.lazyBox<CurrentUserHiveObject>(HiveBoxKeys.CURRENT_USER).clear();
+    await Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY).clear();
+    await Hive.box<RoomWithRoomUsersHiveObject>(
+            HiveBoxKeys.ROOMS_WITH_ROOM_USERS)
+        .clear();
+    await Hive.box<List<dynamic>>(HiveBoxKeys.MESSAGES).clear();
+  }
+
+  Future initializeApp() async {
     await initializeAppIfNotAlready();
     final Directory directory =
         await pathProvider.getApplicationDocumentsDirectory();
     Hive.init(directory.path);
-    if (shouldRegisterAdapters) {
-      registerAdapters();
-    }
+    registerAdapters();
     await openBoxes();
     // await Hive.deleteFromDisk();
     print("Hive boxes opened");

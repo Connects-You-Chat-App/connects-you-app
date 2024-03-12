@@ -26,7 +26,6 @@ import '../utils/cache_management.dart';
 import '../utils/custom_exception.dart';
 import '../utils/device_info.dart';
 import '../utils/g_drive.dart';
-import '../utils/secure_storage.dart';
 import '../widgets/screens/home/home_screen.dart';
 import '../widgets/screens/splash/splash_screen.dart';
 import 'root_controller.dart';
@@ -122,7 +121,7 @@ class AuthController extends GetxController {
       afterAuthenticated();
       await const CacheManagement().initializeCache();
     } catch (error) {
-      await SecureStorage.deleteAll();
+      await _rootController.clearAllBoxes();
     }
     _authState.value = AuthStates.completed;
   }
@@ -302,8 +301,7 @@ class AuthController extends GetxController {
       _authState.value = AuthStates.completed;
       await _auth.signOut();
       await _googleSignIn.signOut();
-      await _currentUserBox.clear();
-      await SecureStorage.deleteAll();
+      await _rootController.clearAllBoxes();
       rethrow;
     }
   }
@@ -314,11 +312,7 @@ class AuthController extends GetxController {
         await ServerApi.authService.signOut();
     _googleSignIn.signOut();
     _auth.signOut();
-    await Hive.deleteFromDisk();
-    await Hive.close();
-    await _rootController.initializeApp(
-        shouldRegisterAdapters:
-            false); // TODO: fix the issue of not hive box opended on signout.
+    await _rootController.clearAllBoxes();
     Get.offAllNamed(SplashScreen.routeName);
     await Future.delayed(const Duration(seconds: 1));
     _authenticatedUser.value = null;

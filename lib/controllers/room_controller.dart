@@ -103,7 +103,7 @@ class RoomController extends GetxController {
       updatedAt: DateTime.now().toUtc(),
     );
 
-    // _roomsController.addMessageToRoom(messageObj);
+    _roomsController.addMessageToRoom(messageObj);
 
     await ServerApi.messageService.sendMessage(SendMessageRequest(
       messageId: messageObj.id,
