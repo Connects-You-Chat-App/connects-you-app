@@ -85,6 +85,7 @@ class RoomController extends GetxController {
     final AuthController authController = Get.find<AuthController>();
     final CurrentUser currentUser = authController.authenticatedUser!;
     final String encryptedMessage = await encryptMessage(message);
+
     final Message messageObj = Message(
       id: randomUUID(),
       roomId: room.id,
@@ -104,6 +105,7 @@ class RoomController extends GetxController {
     );
 
     _roomsController.addMessageToRoom(messageObj);
+    messageController.clear();
 
     await ServerApi.messageService.sendMessage(SendMessageRequest(
       messageId: messageObj.id,

@@ -8,4 +8,6 @@ class SocketEvents {
   static const String GROUP_JOINED = 'GROUP_JOINED';
   static const String USER_STATUS = 'USER_STATUS';
   static const String ROOM_MESSAGE = 'ROOM_MESSAGE';
+  static const String ROOM_MESSAGE_DELIVERED = 'ROOM_MESSAGE_DELIVERED';
+  static const String ROOM_MESSAGE_READ = 'ROOM_MESSAGE_READ';
 }

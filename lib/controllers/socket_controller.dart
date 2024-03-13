@@ -8,6 +8,7 @@ import '../models/base/message.dart';
 import '../models/base/notification.dart';
 import '../models/base/user.dart';
 import '../models/common/rooms_with_room_users.dart';
+import 'auth_controller.dart';
 import 'notifications_controller.dart';
 import 'rooms_controller.dart';
 
@@ -98,17 +99,40 @@ class SocketController extends GetxController {
           (data as Map<String, String>)['roomId']!,
           User.fromJson((data as Map<String, Map<String, dynamic>>)['user']!));
     });
-    socket.on(SocketEvents.ROOM_MESSAGE, (final dynamic data) {
+    socket.on(SocketEvents.ROOM_MESSAGE, (final dynamic data) async {
       final Message message = Message.fromJson(data as Map<String, dynamic>);
       print('ROOM_MESSAGE $data');
-      /**
-       * if message sent by me then update the status of message to sent
-       * else add message to room and emit that message is delivered (as this is a message from other user and received by me)
-       */
+      if (Get.find<AuthController>().authenticatedUser?.id ==
+          message.senderUser.id) {
+        await Get.find<RoomsController>().updateMessageStatus(
+          message.roomId,
+          message.id,
+          MessageStatus.SENT,
+        );
+      } else {
+        await Get.find<RoomsController>().addMessageToRoom(message);
+      }
+    });
+
+    // TODO: add user list for status (like delivered to whom, and read by whom)
+    socket.on(SocketEvents.ROOM_MESSAGE_DELIVERED, (final dynamic data) {
+      // TODO: Implement message delivered
+      print('ROOM_MESSAGE_DELIVERED $data');
+      // Get.find<RoomsController>().updateMessageStatus(
       // Get.find<RoomController>().addMessageToRoom(
-      //     data['roomId'], Message.fromJson(data['message']),);
-      // Get.find<InboxController>()
-      //     .addUserToRoom(data['roomId'], User.fromJson(data['user']));
+      //     data['roomId'], Message.fromJson(data['message']));
+    });
+
+    socket.on(SocketEvents.ROOM_MESSAGE_READ, (final dynamic data) async {
+      final String userId = data['userId'] as String;
+      final String roomId = data['roomId'] as String;
+      final List<String> messageIds =
+          (data['messageIds'] as List<dynamic>).cast<String>();
+      print('ROOM_MESSAGE_READ $data');
+      await Get.find<RoomsController>()
+          .updateMessageStatuses(roomId, messageIds, MessageStatus.READ);
+      // Get.find<RoomController>().addMessageToRoom(
+      //     data['roomId'], Message.fromJson(data['message']));
     });
   }
 }

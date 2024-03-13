@@ -49,12 +49,15 @@ class CacheManagement {
     final Box<SharedKeyHiveObject> sharedKeyBox =
         Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
 
-    final List<RoomWithRoomUsersHiveObject> rooms = roomBox.values.toList();
+    final List<RoomWithRoomUsersHiveObject> rooms =
+        roomBox.values.toList(growable: true);
     final List<MessageHiveObject> messages = List<MessageHiveObject>.from(
         messageBox.values
             .expand((final List<dynamic> element) => element)
-            .toList());
-    final List<SharedKeyHiveObject> sharedKeys = sharedKeyBox.values.toList();
+            .toList(),
+        growable: true);
+    final List<SharedKeyHiveObject> sharedKeys =
+        sharedKeyBox.values.toList(growable: true);
 
     final AuthController authController = Get.find<AuthController>();
     final CurrentUser user = authController.authenticatedUser!;
@@ -370,6 +373,17 @@ class CacheManagement {
     await roomBox.clear();
     await messageBox.clear();
     await sharedKeyBox.clear();
+
+    messages.sort((final dynamic a, final dynamic b) {
+      final MessageHiveObject messageA = a as MessageHiveObject;
+      final MessageHiveObject messageB = b as MessageHiveObject;
+      return messageA.updatedAt.compareTo(messageB.updatedAt);
+    }); // sort messages by updatedAt in ascending order
+
+    rooms.sort((final RoomWithRoomUsersHiveObject a,
+        final RoomWithRoomUsersHiveObject b) {
+      return a.updatedAt.compareTo(b.updatedAt);
+    }); // sort rooms by updatedAt in ascending order
 
     final Map<String, List<MessageHiveObject>> messageMap =
         <String, List<MessageHiveObject>>{};

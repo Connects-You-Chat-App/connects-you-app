@@ -125,15 +125,39 @@ class RoomsController extends GetxController {
     }
   }
 
-  void updateMessageStatus(
+  Future<void> updateMessageStatus(
     final String roomId,
     final String messageId,
     final String messageStatus,
-  ) {
+  ) async {
     final int messageIndex = _roomMessages[roomId]!
         .lastIndexWhere((final Message element) => element.id == messageId);
     if (messageIndex != -1) {
       _roomMessages[roomId]![messageIndex].status = messageStatus;
+
+      final List<dynamic> messages =
+          _messagesBox.get(roomId) ?? <MessageHiveObject>[];
+      messages[messageIndex].status = messageStatus;
+      await _messagesBox.put(roomId, messages);
     }
+  }
+
+  Future<void> updateMessageStatuses(
+    final String roomId,
+    final List<String> messageIds,
+    final String messageStatus,
+  ) async {
+    final List<Message> roomMessages = _roomMessages[roomId]!;
+    final List<dynamic> messages =
+        _messagesBox.get(roomId) ?? <MessageHiveObject>[];
+    final Set<String> messageIdsSet = messageIds.toSet();
+
+    for (int i = 0; i < roomMessages.length; i++) {
+      if (messageIdsSet.contains(roomMessages[i].id)) {
+        roomMessages[i].status = messageStatus;
+        messages[i].status = messageStatus;
+      }
+    }
+    await _messagesBox.put(roomId, messages);
   }
 }
