@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../constants/message.dart';
 import '../../../controllers/room_controller.dart';
-import '../../../models/base/message.dart';
 import '../../common/screen_container.dart';
 
 class RoomScreen extends StatelessWidget {

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart' hide Notification;
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+import '../constants/message.dart';
 import '../constants/socket_events.dart';
 import '../constants/url.dart';
-import '../models/base/message.dart';
 import '../models/base/notification.dart';
-import '../models/base/user.dart';
-import '../models/common/rooms_with_room_users.dart';
+import '../models/objects/room_with_room_users_and_messages.dart';
 import 'auth_controller.dart';
 import 'notifications_controller.dart';
 import 'rooms_controller.dart';
@@ -88,7 +87,8 @@ class SocketController extends GetxController {
         (final dynamic data) => <void>{debugPrint(data.toString())});
     socket.on(SocketEvents.DUET_ROOM_CREATED, (final dynamic data) {
       Get.find<RoomsController>().addNewlyCreatedDuetRoom(
-          RoomWithRoomUsers.fromJson(data as Map<String, dynamic>));
+          RoomWithRoomUsersAndMessagesModel.fromJson(
+              data as Map<String, dynamic>));
     });
     socket.on(SocketEvents.GROUP_INVITATION, (final dynamic data) {
       Get.find<NotificationsController>()
@@ -97,13 +97,15 @@ class SocketController extends GetxController {
     socket.on(SocketEvents.GROUP_JOINED, (final dynamic data) {
       Get.find<RoomsController>().addUserToRoom(
           (data as Map<String, String>)['roomId']!,
-          User.fromJson((data as Map<String, Map<String, dynamic>>)['user']!));
+          UserModel.fromJson(
+              (data as Map<String, Map<String, dynamic>>)['user']!));
     });
     socket.on(SocketEvents.ROOM_MESSAGE, (final dynamic data) async {
-      final Message message = Message.fromJson(data as Map<String, dynamic>);
+      final MessageModel message =
+          MessageModel.fromJson(data as Map<String, dynamic>);
       print('ROOM_MESSAGE $data');
       if (Get.find<AuthController>().authenticatedUser?.id ==
-          message.senderUser.id) {
+          message.senderUser?.id) {
         await Get.find<RoomsController>().updateMessageStatus(
           message.roomId,
           message.id,
@@ -130,7 +132,7 @@ class SocketController extends GetxController {
           (data['messageIds'] as List<dynamic>).cast<String>();
       print('ROOM_MESSAGE_READ $data');
       await Get.find<RoomsController>()
-          .updateMessageStatuses(roomId, messageIds, MessageStatus.READ);
+          .updateMessageStatuses(messageIds, MessageStatus.READ);
       // Get.find<RoomController>().addMessageToRoom(
       //     data['roomId'], Message.fromJson(data['message']));
     });

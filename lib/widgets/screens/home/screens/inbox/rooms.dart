@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../../../constants/locale.dart';
 import '../../../../../controllers/rooms_controller.dart';
 import '../../../../../enums/room.dart';
-import '../../../../../models/common/rooms_with_room_users.dart';
+import '../../../../../models/objects/room_with_room_users_and_messages.dart';
 import '../../../../common/avatar.dart';
 
 class Rooms extends GetView<RoomsController> {
@@ -36,7 +36,8 @@ class Rooms extends GetView<RoomsController> {
                     const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 itemCount: controller.rooms.length,
                 itemBuilder: (final BuildContext context, final int index) {
-                  final RoomWithRoomUsers room = controller.rooms[index];
+                  final RoomWithRoomUsersAndMessagesModel room =
+                      controller.rooms[index];
                   return ListTile(
                     onTap: () => controller.redirectToRoom(index),
                     title: Text(room.name),

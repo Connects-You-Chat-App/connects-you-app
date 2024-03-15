@@ -2,21 +2,19 @@ import 'dart:convert';
 
 import 'package:http_wrapper/http.dart';
 
-import '../constants/status_codes.dart';
-import '../extensions/map.dart';
-import '../models/base/message.dart';
-import '../models/requests/send_message_request.dart';
-import '../models/responses/main.dart';
+import '../../constants/status_codes.dart';
+import '../../extensions/map.dart';
+import '../../models/objects/room_with_room_users_and_messages.dart';
+import '../../models/requests/send_message_request.dart';
+import '../../models/responses/main.dart';
 import 'server.dart';
 
 class MessageService {
-  factory MessageService() {
-    return _cachedInstance ??= const MessageService._();
-  }
-
   const MessageService._();
 
-  static MessageService? _cachedInstance;
+  static late final MessageService _cachedInstance;
+
+  factory MessageService() => _cachedInstance ??= const MessageService._();
 
   Future<Response<bool>> sendMessage(
       final SendMessageRequest sendMessageRequest) async {
@@ -41,7 +39,8 @@ class MessageService {
     );
   }
 
-  Future<Response<List<Message>>> fetchAllMessages(final String roomId) async {
+  Future<Response<List<MessageModel>>> fetchAllMessages(
+      final String roomId) async {
     final DecodedResponse response = await ServerApi().get(
       endpoint: '${Endpoints.GET_ROOM_MESSAGES}/$roomId',
     );
@@ -49,19 +48,19 @@ class MessageService {
         response.decodedBody as Map<String, dynamic>;
     if (response.statusCode == StatusCodes.SUCCESS) {
       if (body.containsKey('message')) {
-        return Response<List<Message>>(
+        return Response<List<MessageModel>>(
           code: response.statusCode,
           message: body.get('message', '') as String? ?? '',
           response: (body['messages'] as List<dynamic>).map((final dynamic e) {
-            return Message.fromJson(e as Map<String, dynamic>);
-          }).toList(),
+            return MessageModel.fromJson(e as Map<String, dynamic>);
+          }).toList(growable: true),
         );
       }
     }
-    return Response<List<Message>>(
+    return Response<List<MessageModel>>(
       code: response.statusCode,
       message: body.get('message', '') as String? ?? '',
-      response: <Message>[],
+      response: <MessageModel>[],
     );
   }
 }

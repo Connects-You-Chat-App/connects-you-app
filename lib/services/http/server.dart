@@ -3,8 +3,8 @@
 import 'package:get/get.dart';
 import 'package:http_wrapper/http.dart';
 
-import '../constants/url.dart';
-import '../controllers/auth_controller.dart';
+import '../../constants/url.dart';
+import '../../controllers/auth_controller.dart';
 import 'auth_service.dart';
 import 'common_service.dart';
 import 'message_service.dart';
@@ -41,6 +41,16 @@ class Endpoints {
 }
 
 class ServerApi extends Http {
+  ServerApi._()
+      : super(
+          baseURL: URLs.baseURL,
+          headers: <String, String>{
+            'Content-Type': 'application/json',
+          },
+        );
+
+  static late final ServerApi _instance;
+
   factory ServerApi() {
     _instance ??= ServerApi._();
     if (_authController.authenticatedUser != null) {
@@ -51,16 +61,7 @@ class ServerApi extends Http {
     return _instance!;
   }
 
-  ServerApi._()
-      : super(
-          baseURL: URLs.baseURL,
-          headers: <String, String>{
-            'Content-Type': 'application/json',
-          },
-        );
   static final AuthController _authController = Get.find<AuthController>();
-
-  static ServerApi? _instance;
 
   static AuthService get authService {
     return AuthService();

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/base/user.dart';
+import '../../../models/objects/room_with_room_users_and_messages.dart';
 import '../../common/avatar.dart';
 
 class UserRow extends StatelessWidget {
-
   const UserRow({
-    required this.user, required this.onLongPress, required this.onTap, super.key,
+    required this.user,
+    required this.onLongPress,
+    required this.onTap,
+    super.key,
     this.isSelected = false,
   });
-  final User user;
+
+  final UserModel user;
   final bool isSelected;
   final Function() onLongPress;
   final Function() onTap;

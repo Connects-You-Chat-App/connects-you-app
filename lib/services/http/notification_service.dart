@@ -1,19 +1,18 @@
 import 'package:http_wrapper/http.dart';
 
-import '../constants/status_codes.dart';
-import '../extensions/map.dart';
-import '../models/base/notification.dart';
-import '../models/responses/main.dart';
+import '../../constants/status_codes.dart';
+import '../../extensions/map.dart';
+import '../../models/base/notification.dart';
+import '../../models/responses/main.dart';
 import 'server.dart';
 
 class NotificationService {
-  factory NotificationService() {
-    return _instance ??= const NotificationService._();
-  }
-
   const NotificationService._();
 
-  static NotificationService? _instance;
+  static late final NotificationService _cachedInstance;
+
+  factory NotificationService() =>
+      _cachedInstance ??= const NotificationService._();
 
   Future<Response<List<Notification>>> getNotifications() async {
     final DecodedResponse response = await ServerApi().get(
@@ -28,7 +27,7 @@ class NotificationService {
         response: (body['notifications'] as List<dynamic>)
             .map((final dynamic notification) =>
                 Notification.fromJson(notification as Map<String, dynamic>))
-            .toList(),
+            .toList(growable: true),
       );
     }
     return Response<List<Notification>>(

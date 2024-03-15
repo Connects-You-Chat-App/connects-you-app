@@ -26,7 +26,7 @@ class HomeScreen extends StatelessWidget {
       return Icon(icon[1] as IconData,
           color: icon[0] == currentIndex ? Colors.white : Colors.grey,
           size: mediaQuery.size.width * 0.08);
-    }).toList();
+    }).toList(growable: true);
   }
 
   @override

@@ -49,7 +49,7 @@
 //
 //   List<Map<String, dynamic>> get messageSeenInfoListMap {
 //     if (messageSeenInfo != null) {
-//       return messageSeenInfo!.map((info) => info.toMap()).toList();
+//       return messageSeenInfo!.map((info) => info.toMap()).toList(growable: true);
 //     }
 //     return [];
 //   }

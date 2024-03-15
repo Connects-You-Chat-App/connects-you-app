@@ -1,6 +1,6 @@
 import 'dart:developer';
 
-import 'user.dart';
+import '../objects/room_with_room_users_and_messages.dart';
 
 class Notification {
   Notification({
@@ -19,7 +19,8 @@ class Notification {
     return Notification(
       id: json['id'] as String,
       roomId: json['roomId'] as String,
-      senderUser: User.fromJson(json['senderUser'] as Map<String, dynamic>),
+      senderUser:
+          UserModel.fromJson(json['senderUser'] as Map<String, dynamic>),
       receiverUserId: json['receiverUserId'] as String,
       message: json['message'] as String,
       encryptedRoomSecretKey: json['encryptedRoomSecretKey'] as String,
@@ -30,7 +31,7 @@ class Notification {
 
   final String id;
   final String roomId;
-  final User senderUser;
+  final UserModel senderUser;
   final String receiverUserId;
   final String message;
   final String encryptedRoomSecretKey;

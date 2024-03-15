@@ -2,22 +2,20 @@ import 'dart:convert';
 
 import 'package:http_wrapper/http.dart';
 
-import '../constants/status_codes.dart';
-import '../extensions/map.dart';
-import '../models/requests/authentication_request.dart';
-import '../models/requests/save_user_keys_request.dart';
-import '../models/responses/authentication_response.dart';
-import '../models/responses/main.dart';
+import '../../constants/status_codes.dart';
+import '../../extensions/map.dart';
+import '../../models/requests/authentication_request.dart';
+import '../../models/requests/save_user_keys_request.dart';
+import '../../models/responses/authentication_response.dart';
+import '../../models/responses/main.dart';
 import 'server.dart';
 
 class AuthService {
-  factory AuthService() {
-    return _cachedInstance ??= const AuthService._();
-  }
-
   const AuthService._();
 
-  static AuthService? _cachedInstance;
+  static late final AuthService _cachedInstance;
+
+  factory AuthService() => _cachedInstance ??= const AuthService._();
 
   Future<Response<AuthenticationResponse>?> authenticate(
       final AuthenticationRequest authRequest) async {

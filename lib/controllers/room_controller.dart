@@ -4,23 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:flutter_cryptography/helper.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 
-import '../constants/hive_box_keys.dart';
+import '../constants/message.dart';
 import '../enums/room.dart';
-import '../models/base/message.dart';
-import '../models/base/user.dart';
-import '../models/common/current_user.dart';
-import '../models/common/rooms_with_room_users.dart';
-import '../models/objects/shared_key_hive_object.dart';
+import '../models/objects/current_user.dart';
+import '../models/objects/room_with_room_users_and_messages.dart';
+import '../models/objects/shared_key.dart';
 import '../models/requests/send_message_request.dart';
-import '../service/server.dart';
+import '../services/database/shared_key_service.dart';
+import '../services/http/server.dart';
 import '../utils/generate_shared_key.dart';
 import 'auth_controller.dart';
 import 'rooms_controller.dart';
 
 class RoomController extends GetxController {
-  late final RoomWithRoomUsers room;
+  late final RoomWithRoomUsersAndMessagesModel room;
 
   late final TextEditingController messageController;
 
@@ -29,18 +27,18 @@ class RoomController extends GetxController {
 
   Future _extractSharedKey() async {
     final AuthController authController = Get.find<AuthController>();
-    final CurrentUser currentUser = authController.authenticatedUser!;
-    final Box<SharedKeyHiveObject> sharedKeyBox =
-        Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
+    final CurrentUserModel currentUser = authController.authenticatedUser!;
 
-    inspect(sharedKeyBox.values.toList());
     inspect(room.roomUsers);
 
     if (room.type == RoomType.DUET) {
-      final User otherUser = room.roomUsers.firstWhere(
-        (final User user) => user.id != currentUser.id,
+      final UserModel otherUser = room.roomUsers.firstWhere(
+        (final UserModel user) => user.id != currentUser.id,
       );
-      final SharedKeyHiveObject? sharedKey = sharedKeyBox.get(otherUser.id);
+      final SharedKeyModel? sharedKey =
+          SharedKeyModelService().getSharedKeyForUser(
+        otherUser.id,
+      );
 
       if (sharedKey == null) {
         final List<UserWiseSharedKeyResponse> sharedKeyRes =
@@ -50,18 +48,19 @@ class RoomController extends GetxController {
         }
         _sharedKey = sharedKeyRes.first.sharedKey;
       } else {
-        _sharedKey = sharedKey!.sharedKey;
+        _sharedKey = sharedKey!.key;
       }
       return;
     }
-    _sharedKey = sharedKeyBox.get(room.id)!.sharedKey;
+    _sharedKey =
+        SharedKeyModelService().getSharedKeyForRoom(room.id)?.key ?? '';
     return;
   }
 
   @override
   Future<void> onInit() async {
     super.onInit();
-    room = Get.arguments['room'] as RoomWithRoomUsers;
+    room = Get.arguments['room'] as RoomWithRoomUsersAndMessagesModel;
     messageController = TextEditingController();
     await _extractSharedKey();
     _roomsController = Get.find<RoomsController>();
@@ -80,28 +79,28 @@ class RoomController extends GetxController {
   Future sendMessage({
     required final String message,
     required final String type,
-    final Message? belongsToMessage,
+    final MessageModel? belongsToMessage,
   }) async {
     final AuthController authController = Get.find<AuthController>();
-    final CurrentUser currentUser = authController.authenticatedUser!;
+    final CurrentUserModel currentUser = authController.authenticatedUser!;
     final String encryptedMessage = await encryptMessage(message);
 
-    final Message messageObj = Message(
-      id: randomUUID(),
-      roomId: room.id,
-      senderUser: MessageUser(
-        id: currentUser.id,
-        name: currentUser.name,
-        email: currentUser.email,
+    final MessageModel messageObj = MessageModel(
+      randomUUID(),
+      room.id,
+      type,
+      message,
+      false,
+      DateTime.now().toUtc(),
+      DateTime.now().toUtc(),
+      MessageStatus.PENDING,
+      senderUser: MessageUserModel(
+        currentUser.id,
+        currentUser.name,
+        currentUser.email,
         photoUrl: currentUser.photoUrl,
       ),
-      message: message,
-      type: type,
-      isDeleted: false,
       belongsToMessage: belongsToMessage,
-      status: MessageStatus.PENDING,
-      createdAt: DateTime.now().toUtc(),
-      updatedAt: DateTime.now().toUtc(),
     );
 
     _roomsController.addMessageToRoom(messageObj);

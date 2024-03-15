@@ -1,125 +1,112 @@
 import 'dart:developer';
 
 import 'package:get/get.dart' hide Response;
-import 'package:hive/hive.dart';
 
-import '../constants/hive_box_keys.dart';
-import '../models/base/message.dart';
-import '../models/base/user.dart';
-import '../models/common/rooms_with_room_users.dart';
-import '../models/objects/message_hive_object.dart';
-import '../models/objects/room_with_room_users_hive_object.dart';
+import '../models/objects/room_with_room_users_and_messages.dart';
 import '../models/responses/main.dart';
-import '../service/server.dart';
+import '../services/database/room_with_room_users_and_messages.dart';
+import '../services/http/server.dart';
 import '../utils/generate_shared_key.dart';
 import '../widgets/screens/room/room_screen.dart';
 
 class RoomsController extends GetxController {
-  final RxList<RoomWithRoomUsers> _rooms = <RoomWithRoomUsers>[].obs;
-  final RxMap<String, List<Message>> _roomMessages =
-      <String, List<Message>>{}.obs;
+  final RxList<RoomWithRoomUsersAndMessagesModel> _rooms =
+      <RoomWithRoomUsersAndMessagesModel>[].obs;
+  final RxMap<String, List<MessageModel>> _roomMessages =
+      <String, List<MessageModel>>{}.obs;
 
-  List<RoomWithRoomUsers> get rooms => _rooms;
-
-  late final Box<RoomWithRoomUsersHiveObject> _roomsBox;
-  late final Box<List<dynamic>> _messagesBox;
+  List<RoomWithRoomUsersAndMessagesModel> get rooms => _rooms;
 
   @override
   void onInit() {
     super.onInit();
-    _roomsBox = Hive.box<RoomWithRoomUsersHiveObject>(
-        HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-    _messagesBox = Hive.box<List<dynamic>>(HiveBoxKeys.MESSAGES);
     fetchRooms();
   }
 
   Future<void> fetchRooms({final bool fromServer = false}) async {
     if (fromServer) {
-      final Response<List<RoomWithRoomUsers>> response =
+      final Response<List<RoomWithRoomUsersAndMessagesModel>> response =
           await ServerApi.roomService.fetchRooms();
       _rooms.value = response.response;
-      await _roomsBox.clear();
-      await _roomsBox.addAll(response.response.map(
-          (final RoomWithRoomUsers e) =>
-              RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(e)));
+      RoomWithRoomUsersAndMessagesModelService().resetRooms(
+        response.response.toList(growable: true),
+      );
     } else {
-      _rooms.value = _roomsBox.values
-          .map((final RoomWithRoomUsersHiveObject e) => e.toRoomWithRoomUsers())
-          .toList();
+      _rooms.value = RoomWithRoomUsersAndMessagesModelService().getAllRooms();
     }
   }
 
-  Future<void> addRoom(final RoomWithRoomUsers room) async {
+  Future<void> addRoom(final RoomWithRoomUsersAndMessagesModel room) async {
+    RoomWithRoomUsersAndMessagesModelService().addRoom(room);
     _rooms.insert(0, room);
-    if (_roomsBox.isEmpty) {
-      await _roomsBox
-          .add(RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
-    } else {
-      await _roomsBox.putAt(
-          0, RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
-    }
+    // if (_roomsBox.isEmpty) {
+    //   await _roomsBox
+    //       .add(RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
+    // } else {
+    //   await _roomsBox.putAt(
+    //       0, RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
+    // }
   }
 
-  Future<void> addUserToRoom(final String roomId, final User user) async {
-    final int index = _rooms
-        .indexWhere((final RoomWithRoomUsers element) => element.id == roomId);
+  Future<void> addUserToRoom(final String roomId, final UserModel user) async {
+    final int index = _rooms.indexWhere(
+        (final RoomWithRoomUsersAndMessagesModel element) =>
+            element.id == roomId);
     if (index != -1) {
       _rooms[index].roomUsers.add(user);
-      await _roomsBox.putAt(index,
-          RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(_rooms[index]));
+      RoomWithRoomUsersAndMessagesModelService()
+          .addRoomUsersToRoom(roomId, [user]);
     }
   }
 
-  Future<void> addNewlyCreatedDuetRoom(final RoomWithRoomUsers room) async {
-    final User otherUser = room.roomUsers[0];
+  Future<void> addNewlyCreatedDuetRoom(
+      final RoomWithRoomUsersAndMessagesModel room) async {
+    final UserModel otherUser = room.roomUsers[0];
     final List<UserWiseSharedKeyResponse> sharedKeyRes =
         await getSharedKeyWithOtherUsers([otherUser], force: true);
 
-    await _roomsBox
-        .add(RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
+    RoomWithRoomUsersAndMessagesModelService().addRoom(room);
+    // await _roomsBox
+    //     .add(RoomWithRoomUsersHiveObject.fromRoomWithRoomUsers(room));
   }
 
   void redirectToRoom(final int index) {
     final String roomId = _rooms[index].id;
     Get.toNamed<void>(
       '${RoomScreen.routeName}/${roomId}',
-      arguments: <String, RoomWithRoomUsers>{
+      arguments: <String, RoomWithRoomUsersAndMessagesModel>{
         'room': _rooms[index],
       },
     );
     getRoomMessages(roomId);
   }
 
-  Future<void> addMessageToRoom(final Message message) async {
+  Future<void> addMessageToRoom(final MessageModel message) async {
     final int index = _rooms.indexWhere(
-        (final RoomWithRoomUsers element) => element.id == message.roomId);
+        (final RoomWithRoomUsersAndMessagesModel element) =>
+            element.id == message.roomId);
 
     if (index != -1) {
       if (_roomMessages.containsKey(message.roomId)) {
         _roomMessages[message.roomId]!.add(message);
-        final List<dynamic> messages =
-            _messagesBox.get(message.roomId) ?? <MessageHiveObject>[];
-        messages.add(MessageHiveObject.fromMessage(message));
-        await _messagesBox.put(message.roomId, messages);
       } else {
-        _roomMessages[message.roomId] = <Message>[message];
-        await _messagesBox.put(
-          message.roomId,
-          <MessageHiveObject>[MessageHiveObject.fromMessage(message)],
-        );
+        _roomMessages[message.roomId] = <MessageModel>[message];
       }
+      RoomWithRoomUsersAndMessagesModelService().addMessages([message]);
     }
   }
 
-  List<Message> getRoomMessages(final String roomId) {
+  List<MessageModel> getRoomMessages(final String roomId) {
     if (_roomMessages.containsKey(roomId)) {
       return _roomMessages[roomId]!;
     } else {
-      final List<dynamic> messages =
-          _messagesBox.get(roomId) ?? <MessageHiveObject>[];
-      _roomMessages[roomId] = List<MessageHiveObject>.from(messages)
-          .map((final MessageHiveObject e) => e.toMessage())
-          .toList();
+      // final List<dynamic> messages =
+      //     _messagesBox.get(roomId) ?? <MessageHiveObject>[];
+      // _roomMessages[roomId] = List<MessageHiveObject>.from(messages)
+      //     .map((final MessageHiveObject e) => e.toMessage())
+      //     .toList(growable: true);
+      _roomMessages[roomId] =
+          RoomWithRoomUsersAndMessagesModelService().getRoomMessages(roomId);
       inspect(_roomMessages[roomId]!);
       return _roomMessages[roomId]!;
     }
@@ -130,34 +117,30 @@ class RoomsController extends GetxController {
     final String messageId,
     final String messageStatus,
   ) async {
-    final int messageIndex = _roomMessages[roomId]!
-        .lastIndexWhere((final Message element) => element.id == messageId);
+    final int messageIndex = _roomMessages[roomId]!.lastIndexWhere(
+        (final MessageModel element) => element.id == messageId);
     if (messageIndex != -1) {
       _roomMessages[roomId]![messageIndex].status = messageStatus;
 
-      final List<dynamic> messages =
-          _messagesBox.get(roomId) ?? <MessageHiveObject>[];
-      messages[messageIndex].status = messageStatus;
-      await _messagesBox.put(roomId, messages);
+      RoomWithRoomUsersAndMessagesModelService().updateMessage(
+        _roomMessages[roomId]![messageIndex],
+      );
     }
   }
 
   Future<void> updateMessageStatuses(
-    final String roomId,
     final List<String> messageIds,
     final String messageStatus,
   ) async {
-    final List<Message> roomMessages = _roomMessages[roomId]!;
-    final List<dynamic> messages =
-        _messagesBox.get(roomId) ?? <MessageHiveObject>[];
+    final List<MessageModel> messages =
+        RoomWithRoomUsersAndMessagesModelService()
+            .getMessagesWithMessageIds(messageIds);
     final Set<String> messageIdsSet = messageIds.toSet();
-
-    for (int i = 0; i < roomMessages.length; i++) {
-      if (messageIdsSet.contains(roomMessages[i].id)) {
-        roomMessages[i].status = messageStatus;
+    for (int i = 0; i < messages.length; i++) {
+      if (messageIdsSet.contains(messages[i].id)) {
         messages[i].status = messageStatus;
       }
     }
-    await _messagesBox.put(roomId, messages);
+    // RoomWithRoomUsersAndMessagesModelService().resetMessages(messages);
   }
 }

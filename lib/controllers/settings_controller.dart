@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../constants/hive_secure_storage_keys.dart';
-import '../utils/secure_storage.dart';
+import '../constants/secure_storage_keys.dart';
+import '../services/database/secure_storage_service.dart';
 
 class SettingController extends GetxController {
   Future<void> _initSettings() async {
     try {
-      final value = await SecureStorage.read(key: HiveSecureStorageKeys.THEME);
-      if (value == null || value as String == '') {
+      final String? value =
+          SecureStorageModelService().getValue()[SecureStorageKeys.THEME];
+      if (value == null || value.isEmpty) {
         Get.changeThemeMode(ThemeMode.system);
       } else {
         Get.changeThemeMode(value == ThemeMode.dark.name

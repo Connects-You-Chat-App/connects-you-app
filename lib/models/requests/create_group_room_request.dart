@@ -38,7 +38,7 @@ class CreateGroupRoomRequest {
       'selfEncryptedRoomSecretKey': selfEncryptedRoomSecretKey,
       'otherUsersEncryptedRoomSecretKeys': otherUsersEncryptedRoomSecretKeys
           .map((final OtherUserEncryptedSharedKey e) => e.toJson())
-          .toList(),
+          .toList(growable: true),
     };
   }
 }
