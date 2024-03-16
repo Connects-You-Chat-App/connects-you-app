@@ -8,7 +8,7 @@ import 'server.dart';
 class CommonService {
   const CommonService._();
 
-  static late final CommonService _cachedInstance;
+  static CommonService? _cachedInstance;
 
   factory CommonService() => _cachedInstance ??= const CommonService._();
 

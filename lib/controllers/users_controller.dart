@@ -4,14 +4,12 @@ import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:flutter_cryptography/helper.dart';
 import 'package:get/get.dart' hide Response;
 
-import '../enums/room.dart';
 import '../models/objects/room_with_room_users_and_messages.dart';
 import '../models/objects/shared_key.dart';
 import '../models/requests/create_duet_room_request.dart';
 import '../models/requests/create_group_room_request.dart';
 import '../models/responses/main.dart';
-import '../services/database/current_user_service.dart';
-import '../services/database/shared_key_service.dart';
+import '../services/database/main.dart';
 import '../services/http/server.dart';
 import '../utils/generate_shared_key.dart';
 import '../widgets/screens/room/room_screen.dart';
@@ -48,7 +46,7 @@ class UsersController extends GetxController {
         final List<UserModel> searchedUsers = _users
             .where((final UserModel user) =>
                 user.name.contains(query) || user.email.contains(query))
-            .toList(growable: true);
+            .toList();
         _searchedUsers.value = searchedUsers;
       } else {
         _searchedUsers.clear();
@@ -79,30 +77,18 @@ class UsersController extends GetxController {
     _isCreatingRoom.value = false;
   }
 
-  RoomWithRoomUsersAndMessagesModel? findDuetRoomFromState(final int index) {
-    return Get.find<RoomsController>()
-        .rooms
-        .firstWhereOrNull((final RoomWithRoomUsersAndMessagesModel element) {
-      if (element.type == RoomType.DUET) {
-        final UserModel? roomUser = element.roomUsers.firstWhereOrNull(
-          (final UserModel element) => element.id == _users[index].id,
-        );
-        if (roomUser != null) {
-          return true;
-        }
-      }
-      return false;
-    });
-  }
+  RoomWithRoomUsersAndMessagesModel? findDuetRoomFromState(
+          final String userId) =>
+      RealmService.roomWithRoomUsersAndMessagesModelService
+          .getRoomFromRoomUserId(userId);
 
   Future<void> createDuetIfNotExists(final int index) async {
+    final String userId = _users[index].id;
     final RoomWithRoomUsersAndMessagesModel? room =
-        findDuetRoomFromState(index);
+        findDuetRoomFromState(userId);
     if (room != null) {
       Get.toNamed<void>('${RoomScreen.routeName}/${room.id}',
-          arguments: <String, RoomWithRoomUsersAndMessagesModel>{
-            'room': room,
-          });
+          arguments: <String, RoomWithRoomUsersAndMessagesModel>{'room': room});
       return;
     }
 
@@ -119,7 +105,7 @@ class UsersController extends GetxController {
         userId: _users[index].id,
         encryptedSharedKey: sharedKey.encryptedKey,
       ));
-      SharedKeyModelService().addSharedKey(SharedKeyModel(
+      RealmService.sharedKeyModelService.addSharedKey(SharedKeyModel(
         sharedKey.key,
         DateTime.now(),
         DateTime.now(),
@@ -151,13 +137,13 @@ class UsersController extends GetxController {
   Future<void> createGroup() async {
     _isCreatingRoom.value = true;
     try {
-      final List<UserModel> users =
-          _selectedUsers.values.toList(growable: true);
+      final List<UserModel> users = _selectedUsers.values.toList();
       final String roomSecretKey =
           (randomUUID() + randomUUID()).replaceAll('-', '');
       final List<UserWiseSharedKeyResponse> userWiseSharedKeys =
           await getSharedKeyWithOtherUsers(users);
-      final String userKey = CurrentUserModelService().getCurrentUser().userKey;
+      final String userKey =
+          RealmService.currentUserModelService.getCurrentUser()!.userKey;
       final Map<String, Object> res = await compute((final _) async {
         final String selfEncryptedRoomSecretKey = await AesGcmEncryption(
           secretKey: userKey,
@@ -194,7 +180,7 @@ class UsersController extends GetxController {
       );
       final String roomId = createdRoomResponse.response!.id;
 
-      SharedKeyModelService().addSharedKey(SharedKeyModel(
+      RealmService.sharedKeyModelService.addSharedKey(SharedKeyModel(
         userWiseSharedKeys.first.sharedKey,
         DateTime.now(),
         DateTime.now(),

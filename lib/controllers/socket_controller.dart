@@ -131,10 +131,8 @@ class SocketController extends GetxController {
       final List<String> messageIds =
           (data['messageIds'] as List<dynamic>).cast<String>();
       print('ROOM_MESSAGE_READ $data');
-      await Get.find<RoomsController>()
-          .updateMessageStatuses(messageIds, MessageStatus.READ);
-      // Get.find<RoomController>().addMessageToRoom(
-      //     data['roomId'], Message.fromJson(data['message']));
+      // await Get.find<RoomsController>()
+      //     .updateMessageStatuses(messageIds, MessageStatus.READ);
     });
   }
 }

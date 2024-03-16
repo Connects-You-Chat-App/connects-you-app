@@ -1,9 +1,9 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:flutter_cryptography/helper.dart';
 import 'package:get/get.dart';
+import 'package:realm/realm.dart';
 
 import '../constants/message.dart';
 import '../enums/room.dart';
@@ -11,7 +11,7 @@ import '../models/objects/current_user.dart';
 import '../models/objects/room_with_room_users_and_messages.dart';
 import '../models/objects/shared_key.dart';
 import '../models/requests/send_message_request.dart';
-import '../services/database/shared_key_service.dart';
+import '../services/database/main.dart';
 import '../services/http/server.dart';
 import '../utils/generate_shared_key.dart';
 import 'auth_controller.dart';
@@ -23,20 +23,22 @@ class RoomController extends GetxController {
   late final TextEditingController messageController;
 
   late final RoomsController _roomsController;
-  late final String _sharedKey;
+  String? _sharedKey;
+
+  Stream<RealmResultsChanges<MessageModel>>? messagesStream;
+
+  late final ScrollController scrollController;
 
   Future _extractSharedKey() async {
     final AuthController authController = Get.find<AuthController>();
     final CurrentUserModel currentUser = authController.authenticatedUser!;
 
-    inspect(room.roomUsers);
-
-    if (room.type == RoomType.DUET) {
+    if (room.type == RoomType.DUET.name) {
       final UserModel otherUser = room.roomUsers.firstWhere(
         (final UserModel user) => user.id != currentUser.id,
       );
       final SharedKeyModel? sharedKey =
-          SharedKeyModelService().getSharedKeyForUser(
+          RealmService.sharedKeyModelService.getSharedKeyForUser(
         otherUser.id,
       );
 
@@ -50,30 +52,47 @@ class RoomController extends GetxController {
       } else {
         _sharedKey = sharedKey!.key;
       }
-      return;
+    } else {
+      _sharedKey =
+          RealmService.sharedKeyModelService.getSharedKeyForRoom(room.id)!.key;
     }
-    _sharedKey =
-        SharedKeyModelService().getSharedKeyForRoom(room.id)?.key ?? '';
-    return;
+  }
+
+  RoomWithRoomUsersAndMessagesModel getRoomDetails() {
+    final Map<String, dynamic> args = Get.arguments as Map<String, dynamic>;
+    final RoomWithRoomUsersAndMessagesModel? room =
+        args['room'] as RoomWithRoomUsersAndMessagesModel?;
+    if (room != null) {
+      return room;
+    }
+    final String roomId = args['roomId'] as String;
+    return RealmService.roomWithRoomUsersAndMessagesModelService
+        .getRoom(roomId)!;
   }
 
   @override
-  Future<void> onInit() async {
+  void onInit() {
     super.onInit();
-    room = Get.arguments['room'] as RoomWithRoomUsersAndMessagesModel;
     messageController = TextEditingController();
-    await _extractSharedKey();
     _roomsController = Get.find<RoomsController>();
+    room = getRoomDetails();
+    messagesStream = RealmService.roomWithRoomUsersAndMessagesModelService
+        .getRoomMessageStream(room.id);
+    scrollController = ScrollController();
   }
 
   @override
   void onClose() {
     messageController.dispose();
+    scrollController.dispose();
     super.onClose();
   }
 
-  Future<String> encryptMessage(final String message) {
-    return AesGcmEncryption(secretKey: _sharedKey).encryptString(message);
+  Future<String> encryptMessage(final String message) async {
+    if (_sharedKey == null) {
+      await _extractSharedKey();
+    }
+    return AesGcmEncryption(secretKey: _sharedKey!).encryptString(message);
   }
 
   Future sendMessage({
@@ -88,8 +107,8 @@ class RoomController extends GetxController {
     final MessageModel messageObj = MessageModel(
       randomUUID(),
       room.id,
-      type,
       message,
+      type,
       false,
       DateTime.now().toUtc(),
       DateTime.now().toUtc(),
@@ -113,5 +132,11 @@ class RoomController extends GetxController {
       type: messageObj.type,
       belongsToMessageId: messageObj.belongsToMessage?.id,
     ));
+
+    scrollController.animateTo(
+      scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 }

@@ -9,7 +9,7 @@ import 'server.dart';
 class UserService {
   const UserService._();
 
-  static late final UserService _cachedInstance;
+  static UserService? _cachedInstance;
 
   factory UserService() => _cachedInstance ??= const UserService._();
 
@@ -26,7 +26,7 @@ class UserService {
         response: (body['users'] as List<dynamic>)
             .map<UserModel>((final dynamic key) =>
                 UserModel.fromJson(key as Map<String, dynamic>))
-            .toList(growable: true),
+            .toList(),
       );
     }
     return Response<List<UserModel>>(

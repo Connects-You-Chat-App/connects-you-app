@@ -1,37 +1,34 @@
-import 'package:flutter/foundation.dart';
-import 'package:realm/realm.dart';
+part of 'main.dart';
 
-import '../../constants/keys.dart';
-import '../../models/objects/shared_key.dart';
-
-class SharedKeyModelService {
-  SharedKeyModelService._() {
-    openRealm();
+class _SharedKeyModelService {
+  _SharedKeyModelService._() {
+    _openRealm();
   }
 
-  static late final SharedKeyModelService _sharedKeyModelService;
+  static _SharedKeyModelService? _sharedKeyModelService;
 
-  factory SharedKeyModelService() => _sharedKeyModelService =
-      _sharedKeyModelService ?? SharedKeyModelService._();
+  factory _SharedKeyModelService() => _sharedKeyModelService =
+      _sharedKeyModelService ?? _SharedKeyModelService._();
 
-  late Realm _realm;
+  static late Realm _realm;
 
-  openRealm() {
+  static _openRealm() {
     final Configuration _config = Configuration.local(
       [SharedKeyModel.schema],
-      encryptionKey: Keys.REALM_STORAGE_KEY.codeUnits,
+      encryptionKey: Keys.REALM_STORAGE_KEY,
     );
     _realm = Realm(_config);
   }
 
-  closeRealm() {
-    if (!_realm.isClosed) {
+  static closeRealm() {
+    if (_sharedKeyModelService != null && !_realm.isClosed) {
       _realm.close();
+      _sharedKeyModelService = null;
     }
   }
 
   List<SharedKeyModel> getAllSharedKeys() {
-    return _realm.all<SharedKeyModel>().toList(growable: true);
+    return _realm.all<SharedKeyModel>().toList();
   }
 
   bool addSharedKey(final SharedKeyModel sharedKey) {
@@ -58,26 +55,28 @@ class SharedKeyModelService {
     }
   }
 
-  bool addRawSharedKeys(List<SharedKeyModel> sharedKeys) {
-    try {
-      _realm.write(() {
-        _realm.addAll<SharedKeyModel>(sharedKeys);
-      });
-      return true;
-    } on RealmException catch (e) {
-      debugPrint(e.message);
-      return false;
-    }
-  }
-
   SharedKeyModel? getSharedKeyForUser(final String userId) {
-    return _realm.all<SharedKeyModel>().firstWhere(
-        (final SharedKeyModel element) => element.forUserId == userId);
+    final RealmResults<SharedKeyModel> sharedKeys =
+        _realm.query<SharedKeyModel>(
+      'forUserId = \$0',
+      [userId],
+    );
+    if (sharedKeys.isEmpty) {
+      return null;
+    }
+    return sharedKeys.first;
   }
 
   SharedKeyModel? getSharedKeyForRoom(final String roomId) {
-    return _realm.all<SharedKeyModel>().firstWhere(
-        (final SharedKeyModel element) => element.forRoomId == roomId);
+    final RealmResults<SharedKeyModel> sharedKeys =
+        _realm.query<SharedKeyModel>(
+      'forRoomId = \$0',
+      [roomId],
+    );
+    if (sharedKeys.isEmpty) {
+      return null;
+    }
+    return sharedKeys.first;
   }
 
   bool resetSharedKeys(final List<SharedKeyModel> sharedKeys) {

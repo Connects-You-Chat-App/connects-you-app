@@ -13,7 +13,7 @@ import 'server.dart';
 class AuthService {
   const AuthService._();
 
-  static late final AuthService _cachedInstance;
+  static AuthService? _cachedInstance;
 
   factory AuthService() => _cachedInstance ??= const AuthService._();
 

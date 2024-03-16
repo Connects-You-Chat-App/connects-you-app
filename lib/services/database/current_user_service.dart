@@ -1,43 +1,46 @@
-import 'package:flutter/foundation.dart';
-import 'package:realm/realm.dart';
+part of 'main.dart';
 
-import '../../constants/keys.dart';
-import '../../models/objects/current_user.dart';
-
-class CurrentUserModelService {
-  CurrentUserModelService._() {
-    openRealm();
+class _CurrentUserModelService {
+  _CurrentUserModelService._() {
+    _openRealm();
   }
 
-  static late final CurrentUserModelService _sharedKeyModelService;
+  static _CurrentUserModelService? _currentUserModelService;
 
-  factory CurrentUserModelService() => _sharedKeyModelService =
-      _sharedKeyModelService ?? CurrentUserModelService._();
+  factory _CurrentUserModelService() => _currentUserModelService =
+      _currentUserModelService ?? _CurrentUserModelService._();
 
-  late Realm _realm;
+  static late Realm _realm;
 
-  openRealm() {
+  _openRealm() {
     final Configuration _config = Configuration.local(
       [CurrentUserModel.schema],
-      encryptionKey: Keys.REALM_STORAGE_KEY.codeUnits,
+      encryptionKey: Keys.REALM_STORAGE_KEY,
     );
     _realm = Realm(_config);
   }
 
-  closeRealm() {
-    if (!_realm.isClosed) {
+  static closeRealm() {
+    if (_currentUserModelService != null && !_realm.isClosed) {
       _realm.close();
+      _currentUserModelService = null;
     }
   }
 
-  CurrentUserModel getCurrentUser() {
-    return _realm.all<CurrentUserModel>().first;
+  CurrentUserModel? getCurrentUser() {
+    final RealmResults<CurrentUserModel> currentUser =
+        _realm.all<CurrentUserModel>();
+    return currentUser.isEmpty ? null : currentUser.first;
   }
 
   bool addCurrentUser(final CurrentUserModel user) {
     try {
-      deleteCurrentUser();
+      // deleteCurrentUser();
       _realm.write(() {
+        final CurrentUserModel? currentUser = getCurrentUser();
+        if (currentUser != null) {
+          _realm.delete(currentUser);
+        }
         _realm.add<CurrentUserModel>(user);
       });
       return true;

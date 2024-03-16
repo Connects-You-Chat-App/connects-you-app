@@ -9,7 +9,7 @@ import 'server.dart';
 class NotificationService {
   const NotificationService._();
 
-  static late final NotificationService _cachedInstance;
+  static NotificationService? _cachedInstance;
 
   factory NotificationService() =>
       _cachedInstance ??= const NotificationService._();
@@ -27,7 +27,7 @@ class NotificationService {
         response: (body['notifications'] as List<dynamic>)
             .map((final dynamic notification) =>
                 Notification.fromJson(notification as Map<String, dynamic>))
-            .toList(growable: true),
+            .toList(),
       );
     }
     return Response<List<Notification>>(

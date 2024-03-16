@@ -49,7 +49,7 @@ class ServerApi extends Http {
           },
         );
 
-  static late final ServerApi _instance;
+  static ServerApi? _instance;
 
   factory ServerApi() {
     _instance ??= ServerApi._();

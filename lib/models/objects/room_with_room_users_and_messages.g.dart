@@ -78,19 +78,20 @@ class MessageUserModel extends _MessageUserModel
   //       photoUrl: user.photoUrl,
   //     );
 
-  factory MessageUserModel.fromJson(final Map<String, dynamic> json) => MessageUserModel(
-      json['id'] as String,
-      json['name'] as String,
-      json['email'] as String,
-      photoUrl: json['photoUrl'] as String?,
-    );
-  }
-  // MessageUser toMessageUser() => MessageUser(
-  //   id: id,
-  //   name: name,
-  //   email: email,
-  //   photoUrl: photoUrl,
-  // );
+  factory MessageUserModel.fromJson(final Map<String, dynamic> json) =>
+      MessageUserModel(
+        json['id'] as String,
+        json['name'] as String,
+        json['email'] as String,
+        photoUrl: json['photoUrl'] as String?,
+      );
+
+// MessageUser toMessageUser() => MessageUser(
+//   id: id,
+//   name: name,
+//   email: email,
+//   photoUrl: photoUrl,
+// );
 }
 
 class MessageModel extends _MessageModel
@@ -225,7 +226,8 @@ class MessageModel extends _MessageModel
     return const SchemaObject(
         ObjectType.realmObject, MessageModel, 'MessageModel', [
       SchemaProperty('id', RealmPropertyType.string, primaryKey: true),
-      SchemaProperty('roomId', RealmPropertyType.string),
+      SchemaProperty('roomId', RealmPropertyType.string,
+          indexType: RealmIndexType.fullText),
       SchemaProperty('senderUser', RealmPropertyType.object,
           optional: true, linkTarget: 'MessageUserModel'),
       SchemaProperty('message', RealmPropertyType.string),
@@ -259,41 +261,43 @@ class MessageModel extends _MessageModel
   //   editedAt: user.editedAt,
   // );
 
-  factory MessageModel.fromJson(final Map<String, dynamic> json) => MessageModel(
-      json['id'] as String,
-      json['roomId'] as String,
-      json['message'] as String,
-      json['type'] as String,
-      json['isDeleted'] as bool,
-      DateTime.parse(json['createdAt'] as String),
-      DateTime.parse(json['updatedAt'] as String),
-      "", // TODO: handle status
-      senderUser: MessageUserModel.fromJson(json['senderUser'] as Map<String, dynamic>),
-      belongsToMessage: json['belongsToMessage'] != null
-          ? MessageModel.fromJson(json['belongsToMessage'] as Map<String, dynamic>)
-          : null,
-      forwardedFromRoomId: json['forwardedFromRoomId'] as String?,
-      editedAt: json['editedAt'] != null
-          ? DateTime.parse(json['editedAt'] as String)
-          : null,
-    );
-  }
+  factory MessageModel.fromJson(final Map<String, dynamic> json) =>
+      MessageModel(
+        json['id'] as String,
+        json['roomId'] as String,
+        json['message'] as String,
+        json['type'] as String,
+        json['isDeleted'] as bool,
+        DateTime.parse(json['createdAt'] as String),
+        DateTime.parse(json['updatedAt'] as String),
+        "",
+        // TODO: handle status
+        senderUser: MessageUserModel.fromJson(
+            json['senderUser'] as Map<String, dynamic>),
+        belongsToMessage: json['belongsToMessage'] != null
+            ? MessageModel.fromJson(
+                json['belongsToMessage'] as Map<String, dynamic>)
+            : null,
+        forwardedFromRoomId: json['forwardedFromRoomId'] as String?,
+        editedAt: json['editedAt'] != null
+            ? DateTime.parse(json['editedAt'] as String)
+            : null,
+      );
 
-  // Message toMessage() => Message(
-  //   id: id,
-  //   roomId: roomId,
-  //   senderUser: senderUser!.toMessageUser(),
-  //   message: message,
-  //   type: type,
-  //   isDeleted: isDeleted,
-  //   createdAt: createdAt,
-  //   updatedAt: updatedAt,
-  //   belongsToMessage: belongsToMessage?.toMessage(),
-  //   status: status,
-  //   forwardedFromRoomId: forwardedFromRoomId,
-  //   editedAt: editedAt,
-  // );
-
+// Message toMessage() => Message(
+//   id: id,
+//   roomId: roomId,
+//   senderUser: senderUser!.toMessageUser(),
+//   message: message,
+//   type: type,
+//   isDeleted: isDeleted,
+//   createdAt: createdAt,
+//   updatedAt: updatedAt,
+//   belongsToMessage: belongsToMessage?.toMessage(),
+//   status: status,
+//   forwardedFromRoomId: forwardedFromRoomId,
+//   editedAt: editedAt,
+// );
 }
 
 class UserModel extends _UserModel
@@ -389,24 +393,22 @@ class UserModel extends _UserModel
   // );
 
   factory UserModel.fromJson(final Map<String, dynamic> json) => UserModel(
-      json['id'] as String,
-      json['name'] as String,
-      json['email'] as String,
-      json['publicKey'] as String,
-      photoUrl:  json['photoUrl'] as String?,
-      description: json['description'] as String?,
-    );
-  }
+        json['id'] as String,
+        json['name'] as String,
+        json['email'] as String,
+        json['publicKey'] as String,
+        photoUrl: json['photoUrl'] as String?,
+        description: json['description'] as String?,
+      );
 
-  // User toUser() => User(
-  //   id: id,
-  //   name: name,
-  //   email: email,
-  //   photoUrl: photoUrl,
-  //   publicKey: publicKey,
-  //   description: description,
-  // );
-
+// User toUser() => User(
+//   id: id,
+//   name: name,
+//   email: email,
+//   photoUrl: photoUrl,
+//   publicKey: publicKey,
+//   description: description,
+// );
 }
 
 class RoomWithRoomUsersAndMessagesModel
@@ -531,7 +533,7 @@ class RoomWithRoomUsersAndMessagesModel
         ObjectType.realmObject,
         RoomWithRoomUsersAndMessagesModel,
         'RoomWithRoomUsersAndMessagesModel', [
-      SchemaProperty('id', RealmPropertyType.string),
+      SchemaProperty('id', RealmPropertyType.string, primaryKey: true),
       SchemaProperty('name', RealmPropertyType.string),
       SchemaProperty('type', RealmPropertyType.string),
       SchemaProperty('description', RealmPropertyType.string, optional: true),
@@ -561,31 +563,32 @@ class RoomWithRoomUsersAndMessagesModel
   //       isNewlyCreatedRoom: roomWithRoomUsers.isNewlyCreatedRoom,
   //     );
 
+  factory RoomWithRoomUsersAndMessagesModel.fromJson(
+          final Map<String, dynamic> json) =>
+      RoomWithRoomUsersAndMessagesModel(
+        json['id'] as String,
+        json['name'] as String,
+        json['type'] as String,
+        DateTime.parse(json['updatedAt'] as String),
+        DateTime.parse(json['createdAt'] as String),
+        description: json['description'] as String?,
+        logoUrl: json['logoUrl'] as String?,
+        isNewlyCreatedRoom: json['isNewlyCreatedRoom'] as bool? ?? false,
+        roomUsers: (json['roomUsers'] as List<dynamic>)
+            .map((final dynamic e) =>
+                UserModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
 
-  factory RoomWithRoomUsersAndMessagesModel.fromJson(final Map<String, dynamic> json) => RoomWithRoomUsersAndMessagesModel(
-      son['id'] as String,
-      json['name'] as String,
-      json['type'] as String,
-      DateTime.parse(json['updatedAt'] as String),
-      DateTime.parse(json['createdAt'] as String),
-      description: json['description'] as String?,
-      logoUrl: json['logoUrl'] as String?,
-      isNewlyCreatedRoom: json['isNewlyCreatedRoom'] as bool? ?? false,
-      roomUsers: (json['roomUsers'] as List<dynamic>)
-          .map((final dynamic e) => UserModel.fromJson(e as Map<String, dynamic>))
-          .toList(growable: true),
-    );
-  }
-
-  // RoomWithRoomUsers toRoomWithRoomUsers() => RoomWithRoomUsers(
-  //   id: id,
-  //   name: name,
-  //   type: RoomType.fromString(type)
-  //   description: description,
-  //   logoUrl: logoUrl,
-  //   createdAt: createdAt,
-  //   updatedAt: updatedAt,
-  //   roomUsers: roomUsers.map((UserModel user) => user.toUser()),
-  //   isNewlyCreatedRoom: isNewlyCreatedRoom,
-  // );
+// RoomWithRoomUsers toRoomWithRoomUsers() => RoomWithRoomUsers(
+//   id: id,
+//   name: name,
+//   type: RoomType.fromString(type)
+//   description: description,
+//   logoUrl: logoUrl,
+//   createdAt: createdAt,
+//   updatedAt: updatedAt,
+//   roomUsers: roomUsers.map((UserModel user) => user.toUser()),
+//   isNewlyCreatedRoom: isNewlyCreatedRoom,
+// );
 }

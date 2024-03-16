@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../constants/secure_storage_keys.dart';
-import '../services/database/secure_storage_service.dart';
+import '../services/database/main.dart';
 
 class SettingController extends GetxController {
   Future<void> _initSettings() async {
     try {
-      final String? value =
-          SecureStorageModelService().getValue()[SecureStorageKeys.THEME];
+      final String? value = RealmService.secureStorageModelService
+          .getValue()?[SecureStorageKeys.THEME];
       if (value == null || value.isEmpty) {
         Get.changeThemeMode(ThemeMode.system);
       } else {

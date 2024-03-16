@@ -7,16 +7,16 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../constants/keys.dart';
 import '../constants/secure_storage_keys.dart';
 import '../controllers/auth_controller.dart';
-import '../services/database/secure_storage_service.dart';
+import '../services/database/main.dart';
 
 mixin GDriveOps {
-  static const String _userKeyFileName = 'key.txt';
+  static const String _userKeyFileName = 'key';
   static final AuthController _authController = Get.find<AuthController>();
 
   static String? _getLocallyStoredSharedKeyFileId() {
     // return SecureStorage.read(key: HiveSecureStorageKeys.USER_KEY_FILE);
-    return SecureStorageModelService()
-        .getValue()[SecureStorageKeys.USER_KEY_FILE];
+    return RealmService.secureStorageModelService
+        .getValue()?[SecureStorageKeys.USER_KEY_FILE];
   }
 
   static Future<bool> _saveToDrive(final String fileContent,
@@ -34,7 +34,7 @@ mixin GDriveOps {
       final FileResponse<dynamic> response =
           await GDrive.getFileAndWriteFileContent(
               _userKeyFileName, fileContent, accessToken);
-      SecureStorageModelService()
+      RealmService.secureStorageModelService
           .addOrUpdateValue(_userKeyFileName, response.fileId);
       return true;
     } else {
@@ -69,7 +69,7 @@ mixin GDriveOps {
     if (fileId == null) {
       final FileResponse<String> response =
           await GDrive.getFileAndReadFileContent(_userKeyFileName, accessToken);
-      SecureStorageModelService()
+      RealmService.secureStorageModelService
           .addOrUpdateValue(_userKeyFileName, response.fileId);
       encryptedUserKey = response.response;
     } else {

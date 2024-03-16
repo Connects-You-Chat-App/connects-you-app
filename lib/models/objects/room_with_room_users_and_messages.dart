@@ -1,7 +1,5 @@
 import 'package:realm/realm.dart' hide User;
 
-import '../../enums/room.dart';
-
 part 'room_with_room_users_and_messages.g.dart';
 
 @RealmModel(ObjectType.embeddedObject)
@@ -16,6 +14,7 @@ class _MessageUserModel {
 class _MessageModel {
   @PrimaryKey()
   late String id;
+  @Indexed(RealmIndexType.fullText)
   late String roomId;
   late _MessageUserModel? senderUser;
   late String message;
@@ -41,6 +40,7 @@ class _UserModel {
 
 @RealmModel()
 class _RoomWithRoomUsersAndMessagesModel {
+  @PrimaryKey()
   late String id;
   late String name;
   late String type;

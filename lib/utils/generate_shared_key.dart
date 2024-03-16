@@ -8,7 +8,7 @@ import '../controllers/auth_controller.dart';
 import '../models/objects/current_user.dart';
 import '../models/objects/room_with_room_users_and_messages.dart';
 import '../models/objects/shared_key.dart';
-import '../services/database/shared_key_service.dart';
+import '../services/database/main.dart';
 import '../services/http/server.dart';
 
 class SharedKeyResponse {
@@ -64,7 +64,7 @@ Future<List<UserWiseSharedKeyResponse>> getSharedKeyWithOtherUsers(
   if (!force) {
     await Future.wait(users.map((final UserModel user) async {
       final SharedKeyModel? sharedKey =
-          SharedKeyModelService().getSharedKeyForUser(user.id);
+          RealmService.sharedKeyModelService.getSharedKeyForUser(user.id);
       if (sharedKey != null) {
         sharedKeys.add(UserWiseSharedKeyResponse(
           userId: user.id,
@@ -109,7 +109,7 @@ Future<List<UserWiseSharedKeyResponse>> getSharedKeyWithOtherUsers(
   if (sharedKeysToSave.isNotEmpty) {
     await ServerApi.sharedKeyService.saveKeys(encryptedSharedKeysToSave);
   }
-  if (!SharedKeyModelService().addSharedKeys(sharedKeysToSave)) {
+  if (!RealmService.sharedKeyModelService.addSharedKeys(sharedKeysToSave)) {
     throw Exception('Failed to save shared keys');
   }
 

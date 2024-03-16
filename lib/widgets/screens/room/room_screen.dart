@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:realm/realm.dart';
 
 import '../../../constants/message.dart';
 import '../../../controllers/room_controller.dart';
+import '../../../models/objects/room_with_room_users_and_messages.dart';
 import '../../common/screen_container.dart';
 
 class RoomScreen extends StatelessWidget {
@@ -27,22 +29,49 @@ class RoomScreen extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: <Widget>[
-                  // Expanded(
-                  //   child: Obx(
-                  //     () => ListView.builder(
-                  //       itemCount: _roomController.messages.length,
-                  //       itemBuilder:
-                  //           (final BuildContext context, final int index) {
-                  //         final Message message =
-                  //             _roomController.messages[index];
-                  //         return ListTile(
-                  //           title: Text(message.message),
-                  //           subtitle: Text(message.senderUser.name),
-                  //         );
-                  //       },
-                  //     ),
-                  //   ),
-                  // ),
+                  Expanded(
+                    child: StreamBuilder<RealmResultsChanges<MessageModel>>(
+                      stream: _roomController.messagesStream,
+                      builder: (
+                        final BuildContext context,
+                        final AsyncSnapshot<RealmResultsChanges<MessageModel>>
+                            snapshot,
+                      ) {
+                        if (snapshot.hasData) {
+                          final List<MessageModel> messages =
+                              snapshot.data!.results.toList();
+
+                          return ListView.builder(
+                            itemCount: messages.length,
+                            controller: _roomController.scrollController,
+                            itemBuilder: (
+                              final BuildContext context,
+                              final int index,
+                            ) {
+                              final MessageModel message = messages[index];
+                              return ListTile(
+                                title: Text(message.message + message.status),
+                                subtitle: Text(message.senderUser!.name),
+                              );
+                            },
+                          );
+                        }
+                        return const SizedBox();
+                      },
+                    ),
+                    // child: Str  ListView.builder(
+                    //     itemCount: _roomController.messages.length,
+                    //     itemBuilder:
+                    //         (final BuildContext context, final int index) {
+                    //       final MessageModel message =
+                    //           _roomController.messages[index];
+                    //       return ListTile(
+                    //         title: Text(message.message + message.status),
+                    //         subtitle: Text(message.senderUser!.name),
+                    //       );
+                    //     },
+                    // ),
+                  ),
                   const SizedBox(height: 12),
                   TextField(
                     maxLines: 5,

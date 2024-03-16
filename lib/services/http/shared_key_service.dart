@@ -11,7 +11,7 @@ import 'server.dart';
 class SharedKeyService {
   const SharedKeyService._();
 
-  static late final SharedKeyService _cachedInstance;
+  static SharedKeyService? _cachedInstance;
 
   factory SharedKeyService() => _cachedInstance ??= const SharedKeyService._();
 
@@ -28,7 +28,7 @@ class SharedKeyService {
         response: (body['keys'] as List<dynamic>)
             .map((final dynamic e) =>
                 SharedKeyModel.fromJson(e as Map<String, dynamic>))
-            .toList(growable: true),
+            .toList(),
       );
     }
     return Response<List<SharedKeyModel>>(
@@ -72,7 +72,7 @@ class SharedKeyService {
                 'forUserId': sharedKey.forUserId,
                 'roomId': sharedKey.forRoomId,
               })
-          .toList(growable: true)),
+          .toList()),
     );
     final Map<String, dynamic> body =
         response.decodedBody as Map<String, dynamic>;

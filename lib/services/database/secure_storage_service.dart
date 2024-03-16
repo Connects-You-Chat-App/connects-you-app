@@ -1,39 +1,38 @@
-import 'package:flutter/foundation.dart';
-import 'package:realm/realm.dart';
+part of 'main.dart';
 
-import '../../constants/keys.dart';
-import '../../models/objects/secure_storage.dart';
-
-class SecureStorageModelService {
+class _SecureStorageModelService {
   static const String _id = '1';
 
-  SecureStorageModelService._() {
-    openRealm();
+  _SecureStorageModelService._() {
+    _openRealm();
   }
 
-  static late final SecureStorageModelService _sharedKeyModelService;
+  static _SecureStorageModelService? _secureStorageModelService;
 
-  factory SecureStorageModelService() => _sharedKeyModelService =
-      _sharedKeyModelService ?? SecureStorageModelService._();
+  factory _SecureStorageModelService() => _secureStorageModelService =
+      _secureStorageModelService ?? _SecureStorageModelService._();
 
-  late Realm _realm;
+  static late Realm _realm;
 
-  openRealm() {
+  _openRealm() {
     final Configuration _config = Configuration.local(
       [SecureStorageModel.schema],
-      encryptionKey: Keys.REALM_STORAGE_KEY.codeUnits,
+      encryptionKey: Keys.REALM_STORAGE_KEY,
     );
     _realm = Realm(_config);
   }
 
-  closeRealm() {
-    if (!_realm.isClosed) {
+  static closeRealm() {
+    if (_secureStorageModelService != null && !_realm.isClosed) {
       _realm.close();
+      _secureStorageModelService = null;
     }
   }
 
-  Map<String, String> getValue() {
-    return _realm.all<SecureStorageModel>().first.value;
+  Map<String, String>? getValue() {
+    final RealmResults<SecureStorageModel> _secureStorageModel =
+        _realm.all<SecureStorageModel>();
+    return _secureStorageModel.isEmpty ? null : _secureStorageModel.first.value;
   }
 
   bool setValue(final Map<String, String> value) {
@@ -55,7 +54,7 @@ class SecureStorageModelService {
     try {
       _realm.write(() {
         _realm.add<SecureStorageModel>(
-          SecureStorageModel(_id, value: {...getValue(), key: value}),
+          SecureStorageModel(_id, value: {...(getValue() ?? {}), key: value}),
           update: true,
         );
       });

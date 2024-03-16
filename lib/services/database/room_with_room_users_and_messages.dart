@@ -1,35 +1,37 @@
-import 'package:flutter/foundation.dart';
-import 'package:realm/realm.dart' hide User;
+part of 'main.dart';
 
-import '../../constants/keys.dart';
-import '../../models/objects/room_with_room_users_and_messages.dart';
-
-class RoomWithRoomUsersAndMessagesModelService {
-  RoomWithRoomUsersAndMessagesModelService._() {
-    openRealm();
+class _RoomWithRoomUsersAndMessagesModelService {
+  _RoomWithRoomUsersAndMessagesModelService._() {
+    _openRealm();
   }
 
-  static late final RoomWithRoomUsersAndMessagesModelService
+  static _RoomWithRoomUsersAndMessagesModelService?
       _roomWithRoomUsersAndMessagesModelService;
 
-  factory RoomWithRoomUsersAndMessagesModelService() =>
+  factory _RoomWithRoomUsersAndMessagesModelService() =>
       _roomWithRoomUsersAndMessagesModelService =
           _roomWithRoomUsersAndMessagesModelService ??
-              RoomWithRoomUsersAndMessagesModelService._();
+              _RoomWithRoomUsersAndMessagesModelService._();
 
-  late Realm _realm;
+  static late Realm _realm;
 
-  openRealm() {
+  _openRealm() {
     final Configuration _config = Configuration.local(
-      [RoomWithRoomUsersAndMessagesModel.schema],
-      encryptionKey: Keys.REALM_STORAGE_KEY.codeUnits,
+      [
+        RoomWithRoomUsersAndMessagesModel.schema,
+        UserModel.schema,
+        MessageModel.schema,
+        MessageUserModel.schema,
+      ],
+      encryptionKey: Keys.REALM_STORAGE_KEY,
     );
     _realm = Realm(_config);
   }
 
-  closeRealm() {
-    if (!_realm.isClosed) {
+  static closeRealm() {
+    if (_roomWithRoomUsersAndMessagesModelService != null && !_realm.isClosed) {
       _realm.close();
+      _roomWithRoomUsersAndMessagesModelService = null;
     }
   }
 
@@ -75,34 +77,29 @@ class RoomWithRoomUsersAndMessagesModelService {
   }
 
   List<RoomWithRoomUsersAndMessagesModel> getAllRooms() {
-    return _realm
-        .all<RoomWithRoomUsersAndMessagesModel>()
-        .toList(growable: true);
+    return _realm.all<RoomWithRoomUsersAndMessagesModel>().toList();
   }
 
   List<MessageModel> getAllMessages() {
-    return _realm.all<MessageModel>().toList(growable: true);
+    return _realm.all<MessageModel>().toList();
+  }
+
+  RoomWithRoomUsersAndMessagesModel getRoom(final String roomId) {
+    return _realm.find<RoomWithRoomUsersAndMessagesModel>(roomId)!;
   }
 
   List<MessageModel> getRoomMessages(final String roomId) {
-    final RoomWithRoomUsersAndMessagesModel? room =
-        _realm.find<RoomWithRoomUsersAndMessagesModel>(roomId);
-    return room?.messages.toList(growable: true) ?? <MessageModel>[];
+    final RealmResults<MessageModel> messages =
+        _realm.query<MessageModel>('roomId = \$0', [roomId]);
+    return messages.toList();
   }
 
-  bool updateMessage(final MessageModel message) {
+  bool updateMessageStatus(String messageId, String status) {
     try {
+      final MessageModel? message = _realm.find<MessageModel>(messageId);
       _realm.write(() {
-        final MessageModel? msg = _realm.find<MessageModel>(message.id);
-        if (msg != null) {
-          msg.message = message.message;
-          msg.type = message.type;
-          msg.belongsToMessage = message.belongsToMessage != null
-              ? message.belongsToMessage
-              : null;
-          msg.senderUser = message.senderUser;
-          msg.createdAt = message.createdAt;
-          msg.updatedAt = message.updatedAt;
+        if (message != null) {
+          message.status = status;
         }
       });
       return true;
@@ -112,12 +109,44 @@ class RoomWithRoomUsersAndMessagesModelService {
     }
   }
 
-  List<MessageModel> getMessagesWithMessageIds(final List<String> messageIds) {
+  bool updateMessagesStatus(Iterable<String> messageIds, String status) {
+    try {
+      final RealmResults<MessageModel> message =
+          _realm.query<MessageModel>('id IN \$0', [messageIds]);
+      _realm.write(() {
+        if (message.isNotEmpty) {
+          for (int i = 0; i < message.length; i++) {
+            message[i].status = status;
+          }
+        }
+      });
+
+      return true;
+    } on RealmException catch (e) {
+      debugPrint(e.message);
+      return false;
+    }
+  }
+
+  RoomWithRoomUsersAndMessagesModel? getRoomFromRoomUserId(
+      final String userId) {
+    final RealmResults<RoomWithRoomUsersAndMessagesModel> rooms =
+        _realm.query<RoomWithRoomUsersAndMessagesModel>(
+      "roomUsers.id = \$0",
+      [userId],
+    );
+    if (rooms.isNotEmpty) {
+      return rooms.first;
+    }
+  }
+
+  List<MessageModel> getMessagesWithMessageIds(
+      final Iterable<String> messageIds) {
     final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
       "id IN \$0",
       [messageIds],
     );
-    return messages.toList(growable: true);
+    return messages.toList();
   }
 
   bool resetRooms(final List<RoomWithRoomUsersAndMessagesModel> rooms) {
@@ -131,6 +160,20 @@ class RoomWithRoomUsersAndMessagesModelService {
       debugPrint(e.message);
       return false;
     }
+  }
+
+  Stream<RealmResultsChanges<MessageModel>> getRoomMessageStream(
+      final String roomId) {
+    final RealmResults<MessageModel> messages =
+        _realm.query<MessageModel>('roomId = \$0', [roomId]);
+    return messages.changes;
+  }
+
+  Stream<RealmResultsChanges<RoomWithRoomUsersAndMessagesModel>>
+      getRoomStream() {
+    final RealmResults<RoomWithRoomUsersAndMessagesModel> rooms =
+        _realm.all<RoomWithRoomUsersAndMessagesModel>();
+    return rooms.changes;
   }
 
   bool resetMessages(final List<MessageModel> messages) {

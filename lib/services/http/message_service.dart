@@ -12,7 +12,7 @@ import 'server.dart';
 class MessageService {
   const MessageService._();
 
-  static late final MessageService _cachedInstance;
+  static MessageService? _cachedInstance;
 
   factory MessageService() => _cachedInstance ??= const MessageService._();
 
@@ -53,7 +53,7 @@ class MessageService {
           message: body.get('message', '') as String? ?? '',
           response: (body['messages'] as List<dynamic>).map((final dynamic e) {
             return MessageModel.fromJson(e as Map<String, dynamic>);
-          }).toList(growable: true),
+          }).toList(),
         );
       }
     }

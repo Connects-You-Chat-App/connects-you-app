@@ -9,6 +9,7 @@ import 'package:flutter_cryptography/helper.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../configs/firebase_options.dart';
 import '../configs/google.dart';
 import '../models/common/device_info.dart';
 import '../models/objects/current_user.dart';
@@ -17,8 +18,7 @@ import '../models/requests/authentication_request.dart';
 import '../models/requests/save_user_keys_request.dart';
 import '../models/responses/authentication_response.dart';
 import '../models/responses/main.dart' show Response;
-import '../services/database/current_user_service.dart';
-import '../services/database/shared_key_service.dart';
+import '../services/database/main.dart';
 import '../services/http/server.dart';
 import '../utils/cache_management.dart';
 import '../utils/custom_exception.dart';
@@ -72,8 +72,15 @@ class AuthController extends GetxController {
 
   late SocketController _socketController;
 
+  bool get isAuthenticated {
+    return _authenticatedUser.value?.token != null;
+  }
+
   @override
   Future<void> onInit() async {
+    // RealmService.deleteAllRealms();
+    await initializeAppIfNotAlready();
+
     _googleSignIn = GoogleSignIn(
       scopes: GoogleConfig.scopes,
     );
@@ -91,7 +98,7 @@ class AuthController extends GetxController {
   Future<void> _fetchAndSetAuthUser() async {
     try {
       final CurrentUserModel? currentUser =
-          CurrentUserModelService().getCurrentUser();
+          RealmService.currentUserModelService.getCurrentUser();
       if (currentUser == null) {
         throw const CustomException(errorMessage: 'currentUser is null');
       }
@@ -101,13 +108,9 @@ class AuthController extends GetxController {
       afterAuthenticated();
       await const CacheManagement().initializeCache();
     } catch (error) {
-      // await _rootController.clearAllBoxes(); // TODO: add support to clear all boxes
+      RealmService.deleteAllRealms();
     }
     _authState.value = AuthStates.completed;
-  }
-
-  bool get isAuthenticated {
-    return _authenticatedUser.value?.token != null;
   }
 
   Future _onLogin(final CurrentUserModel user) async {
@@ -135,20 +138,13 @@ class AuthController extends GetxController {
       description: user.description,
     );
 
-    if (!CurrentUserModelService().addCurrentUser(_authenticatedUser.value!)) {
+    if (!RealmService.currentUserModelService
+        .addCurrentUser(_authenticatedUser.value!)) {
       throw const CustomException(errorMessage: 'addCurrentUser failed');
     }
 
-    final [
-      _,
-      _,
-      Response<List<SharedKeyModel>> keys as Response<List<SharedKeyModel>>
-    ] = await Future.wait(<Future<Object?>>[
-      // _currentUserBox.put('CURRENT_USER',
-      //     CurrentUserHiveObject.fromCurrentUser(_authenticatedUser.value!)),
-      // _commonBox.put('USER_KEY', userDriveResponse),
-      ServerApi.sharedKeyService.getKeys(),
-    ]);
+    final Response<List<SharedKeyModel>> keys =
+        await ServerApi.sharedKeyService.getKeys();
 
     final sharedKeys =
         await Future.wait(keys.response.map((final SharedKeyModel key) async {
@@ -165,7 +161,7 @@ class AuthController extends GetxController {
       );
     }));
 
-    if (!SharedKeyModelService().addRawSharedKeys(sharedKeys)) {
+    if (!RealmService.sharedKeyModelService.addSharedKeys(sharedKeys)) {
       throw const CustomException(errorMessage: 'addSharedKeys failed');
     }
 
@@ -203,7 +199,8 @@ class AuthController extends GetxController {
       description: user.description,
     );
 
-    if (!CurrentUserModelService().addCurrentUser(_authenticatedUser.value!)) {
+    if (!RealmService.currentUserModelService
+        .addCurrentUser(_authenticatedUser.value!)) {
       throw const CustomException(errorMessage: 'addCurrentUser failed');
     }
 
@@ -291,7 +288,7 @@ class AuthController extends GetxController {
       _authState.value = AuthStates.completed;
       await _auth.signOut();
       await _googleSignIn.signOut();
-      // await _rootController.clearAllBoxes(); // TODO: add support to clear all boxes
+      RealmService.deleteAllRealms();
       rethrow;
     }
   }
@@ -302,7 +299,7 @@ class AuthController extends GetxController {
         await ServerApi.authService.signOut();
     _googleSignIn.signOut();
     _auth.signOut();
-    // await _rootController.clearAllBoxes(); // TODO: add support to clear all boxes
+    RealmService.deleteAllRealms();
     Get.offAllNamed(SplashScreen.routeName);
     await Future.delayed(const Duration(seconds: 1));
     _authenticatedUser.value = null;

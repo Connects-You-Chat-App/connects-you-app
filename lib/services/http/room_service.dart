@@ -14,7 +14,7 @@ import 'server.dart';
 class RoomService {
   const RoomService._();
 
-  static late final RoomService _cachedInstance;
+  static RoomService? _cachedInstance;
 
   factory RoomService() => _cachedInstance ??= const RoomService._();
 
@@ -78,7 +78,7 @@ class RoomService {
             .map((final dynamic e) =>
                 RoomWithRoomUsersAndMessagesModel.fromJson(
                     e as Map<String, dynamic>))
-            .toList(growable: true),
+            .toList(),
       );
     } else {
       return Response<List<RoomWithRoomUsersAndMessagesModel>>(

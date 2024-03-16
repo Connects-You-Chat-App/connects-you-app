@@ -8,8 +8,7 @@ import '../enums/room.dart';
 import '../models/objects/current_user.dart';
 import '../models/objects/room_with_room_users_and_messages.dart';
 import '../models/objects/shared_key.dart';
-import '../services/database/room_with_room_users_and_messages.dart';
-import '../services/database/shared_key_service.dart';
+import '../services/database/main.dart';
 import '../services/http/server.dart';
 import 'generate_shared_key.dart';
 
@@ -48,20 +47,20 @@ class CacheManagement {
     //     Hive.box<SharedKeyModel>(HiveBoxKeys.SHARED_KEY);
 
     // final List<RoomWithRoomUsersHiveObject> rooms =
-    //     roomBox.values.toList(growable: true);
+    //     roomBox.values.toList();
     // final List<MessageModel> messages = List<MessageModel>.from(
     //     messageBox.values
     //         .expand((final List<dynamic> element) => element)
-    //         .toList(growable: true),
-    //     growable: true);
+    //         .toList(),
+    //     );
     // final List<SharedKeyModel> sharedKeys =
-    //     sharedKeyBox.values.toList(growable: true);
+    //     sharedKeyBox.values.toList();
     final List<RoomWithRoomUsersAndMessagesModel> rooms =
-        RoomWithRoomUsersAndMessagesModelService().getAllRooms();
+        RealmService.roomWithRoomUsersAndMessagesModelService.getAllRooms();
     final List<MessageModel> messages =
-        RoomWithRoomUsersAndMessagesModelService().getAllMessages();
+        RealmService.roomWithRoomUsersAndMessagesModelService.getAllMessages();
     final List<SharedKeyModel> sharedKeys =
-        SharedKeyModelService().getAllSharedKeys();
+        RealmService.sharedKeyModelService.getAllSharedKeys();
 
     final AuthController authController = Get.find<AuthController>();
     final CurrentUserModel user = authController.authenticatedUser!;
@@ -138,7 +137,7 @@ class CacheManagement {
           (latestRoom['roomUsers'] as List<dynamic>)
               .map((final dynamic e) =>
                   UserModel.fromJson(e as Map<String, dynamic>))
-              .toList(growable: true);
+              .toList();
       if (existingRoom == null) {
         rooms.add(RoomWithRoomUsersAndMessagesModel(
           latestRoomMap['id'] as String,
@@ -216,8 +215,7 @@ class CacheManagement {
     }
 
     final List<UserWiseSharedKeyResponse> missingSharedKeys =
-        await getSharedKeyWithOtherUsers(
-            missingSharedKeyUsers.values.toList(growable: true),
+        await getSharedKeyWithOtherUsers(missingSharedKeyUsers.values.toList(),
             force: true);
 
     for (final UserWiseSharedKeyResponse missingSharedKey
@@ -278,7 +276,7 @@ class CacheManagement {
           latestMessageMap['isDeleted'] as bool,
           DateTime.parse(latestMessage['createdAt'] as String),
           DateTime.parse(latestMessage['updatedAt'] as String),
-          MessageStatus.DELIVERED,
+          MessageStatus.SENT,
           // TODO: handle message.status when possible
           senderUser: MessageUserModel.fromJson(
             latestMessage['senderUser'] as Map<String, dynamic>,
@@ -324,8 +322,8 @@ class CacheManagement {
                     .first;
         messages[index].forwardedFromRoomId =
             latestMessageMap['forwardedFromRoomId'] as String?;
-        messages[index].status = MessageStatus
-            .DELIVERED; // TODO: handle message.status when possible
+        // messages[index].status = MessageStatus
+        //     .DELIVERED; // TODO: handle message.status when possible
       }
     }));
 
@@ -380,8 +378,9 @@ class CacheManagement {
     final List<MessageModel> messages,
     final List<SharedKeyModel> sharedKeys,
   ) async {
-    RoomWithRoomUsersAndMessagesModelService().resetRooms(rooms);
-    RoomWithRoomUsersAndMessagesModelService().resetMessages(messages);
-    SharedKeyModelService().resetSharedKeys(sharedKeys);
+    RealmService.roomWithRoomUsersAndMessagesModelService.resetRooms(rooms);
+    RealmService.roomWithRoomUsersAndMessagesModelService
+        .resetMessages(messages);
+    RealmService.sharedKeyModelService.resetSharedKeys(sharedKeys);
   }
 }

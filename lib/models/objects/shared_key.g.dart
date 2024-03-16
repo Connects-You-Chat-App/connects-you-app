@@ -16,7 +16,7 @@ class SharedKeyModel extends _SharedKeyModel
     String? forUserId,
     String? forRoomId,
   }) {
-    RealmObjectBase.set(this, 'key', sharedKey);
+    RealmObjectBase.set(this, 'key', key);
     RealmObjectBase.set(this, 'forUserId', forUserId);
     RealmObjectBase.set(this, 'forRoomId', forRoomId);
     RealmObjectBase.set(this, 'createdAt', createdAt);
@@ -26,8 +26,7 @@ class SharedKeyModel extends _SharedKeyModel
   SharedKeyModel._();
 
   @override
-  String get key =>
-      RealmObjectBase.get<String>(this, 'key') as String;
+  String get key => RealmObjectBase.get<String>(this, 'key') as String;
 
   @override
   set key(String value) => RealmObjectBase.set(this, 'key', value);
@@ -94,20 +93,20 @@ class SharedKeyModel extends _SharedKeyModel
   //       forRoomId: key.forRoomId,
   //     );
 
-  factory SharedKeyModel.fromJson(final Map<String, dynamic> json) => SharedKeyModel(
-      json['key'] as String,
-      DateTime.parse(json['createdAt'] as String),
-      DateTime.parse(json['updatedAt'] as String),
-      forUserId: json['forUserId'] as String?,
-      forRoomId: json['forRoomId'] as String?,
-    );
-  }
-  //
-  // SharedKey toSharedKey() => SharedKey(
-  //       key: sharedKey,
-  //       forUserId: forUserId,
-  //       forRoomId: forRoomId,
-  //       createdAt: createdAt,
-  //       updatedAt: updatedAt,
-  //     );
+  factory SharedKeyModel.fromJson(final Map<String, dynamic> json) =>
+      SharedKeyModel(
+        json['key'] as String,
+        DateTime.parse(json['createdAt'] as String),
+        DateTime.parse(json['updatedAt'] as String),
+        forUserId: json['forUserId'] as String?,
+        forRoomId: json['forRoomId'] as String?,
+      );
+//
+// SharedKey toSharedKey() => SharedKey(
+//       key: sharedKey,
+//       forUserId: forUserId,
+//       forRoomId: forRoomId,
+//       createdAt: createdAt,
+//       updatedAt: updatedAt,
+//     );
 }
