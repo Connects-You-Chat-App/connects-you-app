@@ -22,6 +22,7 @@ class _RoomWithRoomUsersAndMessagesModelService {
         UserModel.schema,
         MessageModel.schema,
         MessageUserModel.schema,
+        MessageStatusModel.schema
       ],
       encryptionKey: Keys.REALM_STORAGE_KEY,
     );
@@ -109,18 +110,75 @@ class _RoomWithRoomUsersAndMessagesModelService {
     }
   }
 
-  bool updateMessagesStatus(Iterable<String> messageIds, String status) {
+  bool updateMessageStatusToDelivered(
+      List<String> messageIds, List<String> userIds) {
     try {
-      final RealmResults<MessageModel> message =
-          _realm.query<MessageModel>('id IN \$0', [messageIds]);
+      final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
+        "id IN \$0",
+        [messageIds],
+      );
       _realm.write(() {
-        if (message.isNotEmpty) {
-          for (int i = 0; i < message.length; i++) {
-            message[i].status = status;
+        for (final MessageModel message in messages) {
+          final List<MessageStatusModel> messageStatuses =
+              message.messageStatuses;
+          final Set<String> userIdSet =
+              messageStatuses.map((e) => e.userId).toSet();
+          for (final String userId in userIds) {
+            if (!userIdSet.contains(userId)) {
+              messageStatuses.add(
+                MessageStatusModel(
+                  userId,
+                  true,
+                  false,
+                  deliveredAt: DateTime.now(),
+                ),
+              );
+            }
           }
         }
       });
+      return true;
+    } on RealmException catch (e) {
+      debugPrint(e.message);
+      return false;
+    }
+  }
 
+  bool updateMessageStatusToRead(
+      List<String> messageIds, List<String> userIds) {
+    try {
+      final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
+        "id IN \$0",
+        [messageIds],
+      );
+      _realm.write(() {
+        for (final MessageModel message in messages) {
+          final List<MessageStatusModel> messageStatuses =
+              message.messageStatuses;
+          final Map<String, MessageStatusModel> userMap = {
+            for (final MessageStatusModel messageStatus in messageStatuses)
+              messageStatus.userId: messageStatus
+          };
+
+          for (final String userId in userIds) {
+            if (userMap[userId] == null) {
+              messageStatuses.add(
+                MessageStatusModel(
+                  userId,
+                  true,
+                  true,
+                  deliveredAt: DateTime.now(),
+                  readAt: DateTime.now(),
+                ),
+              );
+            } else {
+              final MessageStatusModel messageStatus = userMap[userId]!;
+              messageStatus.isRead = true;
+              messageStatus.readAt = DateTime.now();
+            }
+          }
+        }
+      });
       return true;
     } on RealmException catch (e) {
       debugPrint(e.message);
@@ -138,15 +196,6 @@ class _RoomWithRoomUsersAndMessagesModelService {
     if (rooms.isNotEmpty) {
       return rooms.first;
     }
-  }
-
-  List<MessageModel> getMessagesWithMessageIds(
-      final Iterable<String> messageIds) {
-    final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
-      "id IN \$0",
-      [messageIds],
-    );
-    return messages.toList();
   }
 
   bool resetRooms(final List<RoomWithRoomUsersAndMessagesModel> rooms) {

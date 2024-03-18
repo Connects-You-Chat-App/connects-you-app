@@ -1,6 +1,5 @@
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:get/get.dart';
-import 'package:realm/realm.dart' hide User;
 
 import '../constants/message.dart';
 import '../controllers/auth_controller.dart';
@@ -38,23 +37,6 @@ class CacheManagement {
   }
 
   Future<void> _fetchRoomsAndMessages() async {
-    // final Box<RoomWithRoomUsersHiveObject> roomBox =
-    //     Hive.box<RoomWithRoomUsersHiveObject>(
-    //         HiveBoxKeys.ROOMS_WITH_ROOM_USERS);
-    // final Box<List<dynamic>> messageBox =
-    //     Hive.box<List<dynamic>>(HiveBoxKeys.MESSAGES);
-    // final Box<SharedKeyModel> sharedKeyBox =
-    //     Hive.box<SharedKeyModel>(HiveBoxKeys.SHARED_KEY);
-
-    // final List<RoomWithRoomUsersHiveObject> rooms =
-    //     roomBox.values.toList();
-    // final List<MessageModel> messages = List<MessageModel>.from(
-    //     messageBox.values
-    //         .expand((final List<dynamic> element) => element)
-    //         .toList(),
-    //     );
-    // final List<SharedKeyModel> sharedKeys =
-    //     sharedKeyBox.values.toList();
     final List<RoomWithRoomUsersAndMessagesModel> rooms =
         RealmService.roomWithRoomUsersAndMessagesModelService.getAllRooms();
     final List<MessageModel> messages =
@@ -95,16 +77,16 @@ class CacheManagement {
     final List<MessageModel> messages,
   ) {
     DateTime latestUpdatedAt = DateTime.utc(2024);
-    for (final RoomWithRoomUsersAndMessagesModel room in rooms) {
-      if (room.updatedAt.isAfter(latestUpdatedAt)) {
-        latestUpdatedAt = room.updatedAt;
-      }
-    }
-    for (final MessageModel message in messages) {
-      if (message.updatedAt.isAfter(latestUpdatedAt)) {
-        latestUpdatedAt = message.updatedAt;
-      }
-    }
+    // for (final RoomWithRoomUsersAndMessagesModel room in rooms) {
+    //   if (room.updatedAt.isAfter(latestUpdatedAt)) {
+    //     latestUpdatedAt = room.updatedAt;
+    //   }
+    // }
+    // for (final MessageModel message in messages) {
+    //   if (message.updatedAt.isAfter(latestUpdatedAt)) {
+    //     latestUpdatedAt = message.updatedAt;
+    //   }
+    // }
     return latestUpdatedAt;
   }
 
@@ -138,31 +120,26 @@ class CacheManagement {
               .map((final dynamic e) =>
                   UserModel.fromJson(e as Map<String, dynamic>))
               .toList();
+      final RoomWithRoomUsersAndMessagesModel roomObj =
+          RoomWithRoomUsersAndMessagesModel(
+        latestRoomMap['id'] as String,
+        latestRoomMap['name'] as String,
+        latestRoomMap['type'] as String,
+        DateTime.parse(latestRoom['createdAt'] as String),
+        DateTime.parse(latestRoom['updatedAt'] as String),
+        false,
+        roomUsers: latestRoomUsers,
+        description: latestRoomMap['description'] as String?,
+        logoUrl: latestRoomMap['logoUrl'] as String?,
+        messages:
+            roomWiseMessages[latestRoomMap['id'] as String] ?? <MessageModel>[],
+      );
       if (existingRoom == null) {
-        rooms.add(RoomWithRoomUsersAndMessagesModel(
-          latestRoomMap['id'] as String,
-          latestRoomMap['name'] as String,
-          latestRoomMap['type'] as String,
-          DateTime.parse(latestRoom['createdAt'] as String),
-          DateTime.parse(latestRoom['updatedAt'] as String),
-          roomUsers: latestRoomUsers,
-          description: latestRoomMap['description'] as String?,
-          logoUrl: latestRoomMap['logoUrl'] as String?,
-          messages: roomWiseMessages[latestRoomMap['id'] as String] ??
-              <MessageModel>[],
-        ));
+        rooms.add(roomObj);
       } else {
         final int index =
             existingRoomsMap[latestRoom['id'] as String]!.keys.first;
-        rooms[index].name = latestRoomMap['name'] as String;
-        rooms[index].updatedAt =
-            DateTime.parse(latestRoom['updatedAt'] as String);
-        rooms[index].roomUsers = RealmList(latestRoomUsers);
-        rooms[index].description = latestRoomMap['description'] as String?;
-        rooms[index].logoUrl = latestRoomMap['logoUrl'] as String?;
-        rooms[index].messages = RealmList(
-            roomWiseMessages[latestRoomMap['id'] as String] ??
-                <MessageModel>[]);
+        rooms[index] = roomObj;
       }
     });
   }
@@ -266,34 +243,37 @@ class CacheManagement {
           ).decryptString(latestMessageMap['message'] as String);
         }
       }
-
+      final MessageModel messageObj = MessageModel(
+        latestMessageMap['id'] as String,
+        room['id'] as String,
+        message,
+        latestMessageMap['type'] as String,
+        latestMessageMap['isDeleted'] as bool,
+        DateTime.parse(latestMessage['createdAt'] as String),
+        DateTime.parse(latestMessage['updatedAt'] as String),
+        MessageStatus.SENT,
+        messageStatuses: latestMessageMap['messageStatuses'] != null
+            ? (latestMessageMap['messageStatuses'] as List<dynamic>)
+                .map((final dynamic e) =>
+                    MessageStatusModel.fromJson(e as Map<String, dynamic>))
+                .toList()
+            : <MessageStatusModel>[],
+        senderUser: MessageUserModel.fromJson(
+          latestMessage['senderUser'] as Map<String, dynamic>,
+        ),
+        belongsToMessage: latestMessageMap['belongsToMessageId'] == null
+            ? null
+            : existingMessagesMap[
+                    latestMessageMap['belongsToMessageId'] as String]
+                ?.values
+                .first,
+        forwardedFromRoomId: latestMessageMap['forwardedFromRoomId'] as String?,
+        editedAt: latestMessageMap['editedAt'] == null
+            ? null
+            : DateTime.parse(latestMessage['editedAt'] as String),
+        // status:
+      );
       if (existingMessage == null) {
-        final MessageModel messageObj = MessageModel(
-          latestMessageMap['id'] as String,
-          room['id'] as String,
-          message,
-          latestMessageMap['type'] as String,
-          latestMessageMap['isDeleted'] as bool,
-          DateTime.parse(latestMessage['createdAt'] as String),
-          DateTime.parse(latestMessage['updatedAt'] as String),
-          MessageStatus.SENT,
-          // TODO: handle message.status when possible
-          senderUser: MessageUserModel.fromJson(
-            latestMessage['senderUser'] as Map<String, dynamic>,
-          ),
-          belongsToMessage: latestMessageMap['belongsToMessageId'] == null
-              ? null
-              : existingMessagesMap[
-                      latestMessageMap['belongsToMessageId'] as String]
-                  ?.values
-                  .first,
-          forwardedFromRoomId:
-              latestMessageMap['forwardedFromRoomId'] as String?,
-          editedAt: latestMessageMap['editedAt'] == null
-              ? null
-              : DateTime.parse(latestMessage['editedAt'] as String),
-          // status:
-        );
         messages.add(messageObj);
 
         existingMessagesMap[latestMessage['id'] as String] = {
@@ -305,25 +285,7 @@ class CacheManagement {
         final int index =
             existingMessagesMap[latestMessage['id'] as String]!.keys.first;
 
-        messages[index].message = message;
-        messages[index].updatedAt =
-            DateTime.parse(latestMessage['updatedAt'] as String);
-        messages[index].isDeleted =
-            latestMessageMap['isDeleted'] as bool? ?? false;
-        messages[index].editedAt = latestMessageMap['editedAt'] == null
-            ? null
-            : DateTime.parse(latestMessage['editedAt'] as String);
-        messages[index].belongsToMessage =
-            latestMessageMap['belongsToMessageId'] == null
-                ? null
-                : existingMessagesMap[
-                        latestMessageMap['belongsToMessageId'] as String]
-                    ?.values
-                    .first;
-        messages[index].forwardedFromRoomId =
-            latestMessageMap['forwardedFromRoomId'] as String?;
-        // messages[index].status = MessageStatus
-        //     .DELIVERED; // TODO: handle message.status when possible
+        messages[index] = messageObj;
       }
     }));
 

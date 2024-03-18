@@ -70,14 +70,6 @@ class MessageUserModel extends _MessageUserModel
     ]);
   }
 
-  // factory MessageUserModel.fromMessageUser(final MessageUser user) =>
-  //     MessageUserModel(
-  //       user.id,
-  //       user.name,
-  //       user.email,
-  //       photoUrl: user.photoUrl,
-  //     );
-
   factory MessageUserModel.fromJson(final Map<String, dynamic> json) =>
       MessageUserModel(
         json['id'] as String,
@@ -85,13 +77,97 @@ class MessageUserModel extends _MessageUserModel
         json['email'] as String,
         photoUrl: json['photoUrl'] as String?,
       );
+}
 
-// MessageUser toMessageUser() => MessageUser(
-//   id: id,
-//   name: name,
-//   email: email,
-//   photoUrl: photoUrl,
-// );
+class MessageStatusModel extends _MessageStatusModel
+    with RealmEntity, RealmObjectBase, EmbeddedObject {
+  MessageStatusModel(
+    String userId,
+    bool isDelivered,
+    bool isRead, {
+    DateTime? deliveredAt,
+    DateTime? readAt,
+  }) {
+    RealmObjectBase.set(this, 'userId', userId);
+    RealmObjectBase.set(this, 'isDelivered', isDelivered);
+    RealmObjectBase.set(this, 'isRead', isRead);
+    RealmObjectBase.set(this, 'deliveredAt', deliveredAt);
+    RealmObjectBase.set(this, 'readAt', readAt);
+  }
+
+  MessageStatusModel._();
+
+  @override
+  String get userId => RealmObjectBase.get<String>(this, 'userId') as String;
+
+  @override
+  set userId(String value) => RealmObjectBase.set(this, 'userId', value);
+
+  @override
+  bool get isDelivered =>
+      RealmObjectBase.get<bool>(this, 'isDelivered') as bool;
+
+  @override
+  set isDelivered(bool value) =>
+      RealmObjectBase.set(this, 'isDelivered', value);
+
+  @override
+  bool get isRead => RealmObjectBase.get<bool>(this, 'isRead') as bool;
+
+  @override
+  set isRead(bool value) => RealmObjectBase.set(this, 'isRead', value);
+
+  @override
+  DateTime? get deliveredAt =>
+      RealmObjectBase.get<DateTime>(this, 'deliveredAt') as DateTime?;
+
+  @override
+  set deliveredAt(DateTime? value) =>
+      RealmObjectBase.set(this, 'deliveredAt', value);
+
+  @override
+  DateTime? get readAt =>
+      RealmObjectBase.get<DateTime>(this, 'readAt') as DateTime?;
+
+  @override
+  set readAt(DateTime? value) => RealmObjectBase.set(this, 'readAt', value);
+
+  @override
+  Stream<RealmObjectChanges<MessageStatusModel>> get changes =>
+      RealmObjectBase.getChanges<MessageStatusModel>(this);
+
+  @override
+  MessageStatusModel freeze() =>
+      RealmObjectBase.freezeObject<MessageStatusModel>(this);
+
+  static SchemaObject get schema => _schema ??= _initSchema();
+  static SchemaObject? _schema;
+
+  static SchemaObject _initSchema() {
+    RealmObjectBase.registerFactory(MessageStatusModel._);
+    return const SchemaObject(
+        ObjectType.embeddedObject, MessageStatusModel, 'MessageStatusModel', [
+      SchemaProperty('userId', RealmPropertyType.string),
+      SchemaProperty('isDelivered', RealmPropertyType.bool),
+      SchemaProperty('isRead', RealmPropertyType.bool),
+      SchemaProperty('deliveredAt', RealmPropertyType.timestamp,
+          optional: true),
+      SchemaProperty('readAt', RealmPropertyType.timestamp, optional: true),
+    ]);
+  }
+
+  factory MessageStatusModel.fromJson(final Map<String, dynamic> json) =>
+      MessageStatusModel(
+        json['userId'] as String,
+        json['isDelivered'] as bool,
+        json['isRead'] as bool,
+        deliveredAt: json['deliveredAt'] != null
+            ? DateTime.parse(json['deliveredAt'] as String)
+            : null,
+        readAt: json['readAt'] != null
+            ? DateTime.parse(json['readAt'] as String)
+            : null,
+      );
 }
 
 class MessageModel extends _MessageModel
@@ -109,6 +185,7 @@ class MessageModel extends _MessageModel
     MessageModel? belongsToMessage,
     String? forwardedFromRoomId,
     DateTime? editedAt,
+    Iterable<MessageStatusModel> messageStatuses = const [],
   }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'roomId', roomId);
@@ -122,6 +199,8 @@ class MessageModel extends _MessageModel
     RealmObjectBase.set(this, 'status', status);
     RealmObjectBase.set(this, 'forwardedFromRoomId', forwardedFromRoomId);
     RealmObjectBase.set(this, 'editedAt', editedAt);
+    RealmObjectBase.set<RealmList<MessageStatusModel>>(this, 'messageStatuses',
+        RealmList<MessageStatusModel>(messageStatuses));
   }
 
   MessageModel._();
@@ -212,6 +291,15 @@ class MessageModel extends _MessageModel
   set editedAt(DateTime? value) => RealmObjectBase.set(this, 'editedAt', value);
 
   @override
+  RealmList<MessageStatusModel> get messageStatuses =>
+      RealmObjectBase.get<MessageStatusModel>(this, 'messageStatuses')
+          as RealmList<MessageStatusModel>;
+
+  @override
+  set messageStatuses(covariant RealmList<MessageStatusModel> value) =>
+      throw RealmUnsupportedSetError();
+
+  @override
   Stream<RealmObjectChanges<MessageModel>> get changes =>
       RealmObjectBase.getChanges<MessageModel>(this);
 
@@ -241,25 +329,11 @@ class MessageModel extends _MessageModel
       SchemaProperty('forwardedFromRoomId', RealmPropertyType.string,
           optional: true),
       SchemaProperty('editedAt', RealmPropertyType.timestamp, optional: true),
+      SchemaProperty('messageStatuses', RealmPropertyType.object,
+          linkTarget: 'MessageStatusModel',
+          collectionType: RealmCollectionType.list),
     ]);
   }
-
-  // factory MessageModel.fromMessage(final Message user) => MessageModel(
-  //   user.id,
-  //   user.roomId,
-  //   user.message,
-  //   user.type,
-  //   user.isDeleted,
-  //   user.createdAt,
-  //   user.updatedAt,
-  //   user.status,
-  //   senderUser: MessageUserModel.fromMessageUser(user.senderUser),
-  //   belongsToMessage: user.belongsToMessage != null
-  //       ? _MessageModel.fromMessage(user.belongsToMessage!)
-  //       : null,
-  //   forwardedFromRoomId: user.forwardedFromRoomId,
-  //   editedAt: user.editedAt,
-  // );
 
   factory MessageModel.fromJson(final Map<String, dynamic> json) =>
       MessageModel(
@@ -271,7 +345,12 @@ class MessageModel extends _MessageModel
         DateTime.parse(json['createdAt'] as String),
         DateTime.parse(json['updatedAt'] as String),
         "",
-        // TODO: handle status
+        messageStatuses: json['messageStatuses'] != null
+            ? (json['messageStatuses'] as List<dynamic>)
+                .map((final dynamic e) =>
+                    MessageStatusModel.fromJson(e as Map<String, dynamic>))
+                .toList()
+            : [],
         senderUser: MessageUserModel.fromJson(
             json['senderUser'] as Map<String, dynamic>),
         belongsToMessage: json['belongsToMessage'] != null
@@ -283,21 +362,6 @@ class MessageModel extends _MessageModel
             ? DateTime.parse(json['editedAt'] as String)
             : null,
       );
-
-// Message toMessage() => Message(
-//   id: id,
-//   roomId: roomId,
-//   senderUser: senderUser!.toMessageUser(),
-//   message: message,
-//   type: type,
-//   isDeleted: isDeleted,
-//   createdAt: createdAt,
-//   updatedAt: updatedAt,
-//   belongsToMessage: belongsToMessage?.toMessage(),
-//   status: status,
-//   forwardedFromRoomId: forwardedFromRoomId,
-//   editedAt: editedAt,
-// );
 }
 
 class UserModel extends _UserModel
@@ -383,15 +447,6 @@ class UserModel extends _UserModel
     ]);
   }
 
-  // factory UserModel.fromUser(final User user) => UserModel(
-  //   user.id,
-  //   user.name,
-  //   user.email,
-  //   user.publicKey,
-  //   photoUrl: user.photoUrl,
-  //   description: user.description,
-  // );
-
   factory UserModel.fromJson(final Map<String, dynamic> json) => UserModel(
         json['id'] as String,
         json['name'] as String,
@@ -400,15 +455,6 @@ class UserModel extends _UserModel
         photoUrl: json['photoUrl'] as String?,
         description: json['description'] as String?,
       );
-
-// User toUser() => User(
-//   id: id,
-//   name: name,
-//   email: email,
-//   photoUrl: photoUrl,
-//   publicKey: publicKey,
-//   description: description,
-// );
 }
 
 class RoomWithRoomUsersAndMessagesModel
@@ -419,12 +465,12 @@ class RoomWithRoomUsersAndMessagesModel
     String name,
     String type,
     DateTime createdAt,
-    DateTime updatedAt, {
+    DateTime updatedAt,
+    bool isNewlyCreatedRoom, {
     String? description,
     String? logoUrl,
     Iterable<UserModel> roomUsers = const [],
     Iterable<MessageModel> messages = const [],
-    bool isNewlyCreatedRoom = false,
   }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'name', name);
@@ -433,11 +479,11 @@ class RoomWithRoomUsersAndMessagesModel
     RealmObjectBase.set(this, 'logoUrl', logoUrl);
     RealmObjectBase.set(this, 'createdAt', createdAt);
     RealmObjectBase.set(this, 'updatedAt', updatedAt);
+    RealmObjectBase.set(this, 'isNewlyCreatedRoom', isNewlyCreatedRoom);
     RealmObjectBase.set<RealmList<UserModel>>(
         this, 'roomUsers', RealmList<UserModel>(roomUsers));
     RealmObjectBase.set<RealmList<MessageModel>>(
         this, 'messages', RealmList<MessageModel>(messages));
-    RealmObjectBase.set(this, 'isNewlyCreatedRoom', isNewlyCreatedRoom);
   }
 
   RoomWithRoomUsersAndMessagesModel._();
@@ -548,21 +594,6 @@ class RoomWithRoomUsersAndMessagesModel
     ]);
   }
 
-  // factory RoomWithRoomUsersAndMessagesModel.fromRoomWithRoomUsers(
-  //     final RoomWithRoomUsers roomWithRoomUsers) =>
-  //     RoomWithRoomUsersAndMessagesModel(
-  //       roomWithRoomUsers.id,
-  //       roomWithRoomUsers.name,
-  //       roomWithRoomUsers.type.name,
-  //       roomWithRoomUsers.createdAt,
-  //       roomWithRoomUsers.updatedAt,
-  //       description: roomWithRoomUsers.description,
-  //       logoUrl: roomWithRoomUsers.logoUrl,
-  //       roomUsers: roomWithRoomUsers.roomUsers
-  //           .map((User user) => _UserModel.fromUser(user)),
-  //       isNewlyCreatedRoom: roomWithRoomUsers.isNewlyCreatedRoom,
-  //     );
-
   factory RoomWithRoomUsersAndMessagesModel.fromJson(
           final Map<String, dynamic> json) =>
       RoomWithRoomUsersAndMessagesModel(
@@ -571,24 +602,12 @@ class RoomWithRoomUsersAndMessagesModel
         json['type'] as String,
         DateTime.parse(json['updatedAt'] as String),
         DateTime.parse(json['createdAt'] as String),
+        json['isNewlyCreatedRoom'] as bool? ?? false,
         description: json['description'] as String?,
         logoUrl: json['logoUrl'] as String?,
-        isNewlyCreatedRoom: json['isNewlyCreatedRoom'] as bool? ?? false,
         roomUsers: (json['roomUsers'] as List<dynamic>)
             .map((final dynamic e) =>
                 UserModel.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
-
-// RoomWithRoomUsers toRoomWithRoomUsers() => RoomWithRoomUsers(
-//   id: id,
-//   name: name,
-//   type: RoomType.fromString(type)
-//   description: description,
-//   logoUrl: logoUrl,
-//   createdAt: createdAt,
-//   updatedAt: updatedAt,
-//   roomUsers: roomUsers.map((UserModel user) => user.toUser()),
-//   isNewlyCreatedRoom: isNewlyCreatedRoom,
-// );
 }

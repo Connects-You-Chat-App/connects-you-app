@@ -2,7 +2,6 @@ import 'package:flutter/material.dart' hide Notification;
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-import '../constants/message.dart';
 import '../constants/socket_events.dart';
 import '../constants/url.dart';
 import '../models/base/notification.dart';
@@ -106,33 +105,36 @@ class SocketController extends GetxController {
       print('ROOM_MESSAGE $data');
       if (Get.find<AuthController>().authenticatedUser?.id ==
           message.senderUser?.id) {
-        await Get.find<RoomsController>().updateMessageStatus(
-          message.roomId,
+        Get.find<RoomsController>().updateMessageStatusToSent(
           message.id,
-          MessageStatus.SENT,
         );
       } else {
         await Get.find<RoomsController>().addMessageToRoom(message);
       }
     });
 
-    // TODO: add user list for status (like delivered to whom, and read by whom)
     socket.on(SocketEvents.ROOM_MESSAGE_DELIVERED, (final dynamic data) {
-      // TODO: Implement message delivered
-      print('ROOM_MESSAGE_DELIVERED $data');
-      // Get.find<RoomsController>().updateMessageStatus(
-      // Get.find<RoomController>().addMessageToRoom(
-      //     data['roomId'], Message.fromJson(data['message']));
+      final List<String> messageIds =
+          (data['messageIds'] as List<dynamic>).cast<String>();
+      final List<String> userIds =
+          (data['userIds'] as List<dynamic>).cast<String>();
+      print(data['date']);
+      Get.find<RoomsController>().updateMessageStatusToDelivered(
+        messageIds,
+        userIds,
+      );
     });
 
     socket.on(SocketEvents.ROOM_MESSAGE_READ, (final dynamic data) async {
-      final String userId = data['userId'] as String;
-      final String roomId = data['roomId'] as String;
       final List<String> messageIds =
           (data['messageIds'] as List<dynamic>).cast<String>();
-      print('ROOM_MESSAGE_READ $data');
-      // await Get.find<RoomsController>()
-      //     .updateMessageStatuses(messageIds, MessageStatus.READ);
+      final List<String> userIds =
+          (data['userIds'] as List<dynamic>).cast<String>();
+      print(data['date']);
+      Get.find<RoomsController>().updateMessageStatusToRead(
+        messageIds,
+        userIds,
+      );
     });
   }
 }

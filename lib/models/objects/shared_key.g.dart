@@ -85,14 +85,6 @@ class SharedKeyModel extends _SharedKeyModel
     ]);
   }
 
-  // factory SharedKeyModel.fromSharedKey(final SharedKey key) => SharedKeyModel(
-  //       key.key,
-  //       key.createdAt,
-  //       key.updatedAt,
-  //       forUserId: key.forUserId,
-  //       forRoomId: key.forRoomId,
-  //     );
-
   factory SharedKeyModel.fromJson(final Map<String, dynamic> json) =>
       SharedKeyModel(
         json['key'] as String,
@@ -101,12 +93,4 @@ class SharedKeyModel extends _SharedKeyModel
         forUserId: json['forUserId'] as String?,
         forRoomId: json['forRoomId'] as String?,
       );
-//
-// SharedKey toSharedKey() => SharedKey(
-//       key: sharedKey,
-//       forUserId: forUserId,
-//       forRoomId: forRoomId,
-//       createdAt: createdAt,
-//       updatedAt: updatedAt,
-//     );
 }

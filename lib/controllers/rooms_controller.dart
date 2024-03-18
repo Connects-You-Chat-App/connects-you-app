@@ -1,6 +1,7 @@
 import 'package:get/get.dart' hide Response;
 import 'package:realm/realm.dart';
 
+import '../constants/message.dart';
 import '../models/objects/room_with_room_users_and_messages.dart';
 import '../models/responses/main.dart';
 import '../services/database/main.dart';
@@ -9,15 +10,6 @@ import '../utils/generate_shared_key.dart';
 import '../widgets/screens/room/room_screen.dart';
 
 class RoomsController extends GetxController {
-  // final RxList<RoomWithRoomUsersAndMessagesModel> _rooms =
-  //     <RoomWithRoomUsersAndMessagesModel>[].obs;
-  // final RxMap<String, List<MessageModel>> _roomMessages =
-  //     <String, List<MessageModel>>{}.obs;
-
-  // List<RoomWithRoomUsersAndMessagesModel> get rooms => _rooms;
-  //
-  // Map<String, List<MessageModel>> get roomMessages => _roomMessages;
-
   Stream<RealmResultsChanges<RoomWithRoomUsersAndMessagesModel>>? roomStream;
 
   @override
@@ -68,23 +60,26 @@ class RoomsController extends GetxController {
         .addMessages([message]);
   }
 
-  Future<void> updateMessageStatus(
-    final String roomId,
-    final String messageId,
-    final String messageStatus,
-  ) async {
+  void updateMessageStatusToSent(final String messageId) {
     RealmService.roomWithRoomUsersAndMessagesModelService.updateMessageStatus(
       messageId,
-      messageStatus,
+      MessageStatus.SENT,
     );
   }
 
-  Future<void> updateMessageStatuses(
+  void updateMessageStatusToDelivered(
     final List<String> messageIds,
-    final String messageStatus,
-  ) async {
-    final Set<String> messageIdsSet = messageIds.toSet();
+    final List<String> userIds,
+  ) {
     RealmService.roomWithRoomUsersAndMessagesModelService
-        .updateMessagesStatus(messageIds, messageStatus);
+        .updateMessageStatusToDelivered(messageIds, userIds);
+  }
+
+  void updateMessageStatusToRead(
+    final List<String> messageIds,
+    final List<String> userIds,
+  ) {
+    RealmService.roomWithRoomUsersAndMessagesModelService
+        .updateMessageStatusToRead(messageIds, userIds);
   }
 }

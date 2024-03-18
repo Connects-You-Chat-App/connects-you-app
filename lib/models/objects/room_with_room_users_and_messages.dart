@@ -10,6 +10,15 @@ class _MessageUserModel {
   late String? photoUrl;
 }
 
+@RealmModel(ObjectType.embeddedObject)
+class _MessageStatusModel {
+  late bool isDelivered;
+  late bool isRead;
+  late DateTime? deliveredAt;
+  late DateTime? readAt;
+  late String userId;
+}
+
 @RealmModel()
 class _MessageModel {
   @PrimaryKey()
@@ -26,6 +35,7 @@ class _MessageModel {
   late String status;
   late String? forwardedFromRoomId;
   late DateTime? editedAt;
+  late List<_MessageStatusModel> messageStatuses;
 }
 
 @RealmModel(ObjectType.embeddedObject)
