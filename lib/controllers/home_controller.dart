@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:get/get.dart';
 
 import '../widgets/screens/home/screens/account_details/account_details_screen.dart';
 import '../widgets/screens/home/screens/inbox/inbox_screen.dart';
 import '../widgets/screens/home/screens/notification/notification_screen.dart';
-import 'notifications_controller.dart';
-import 'rooms_controller.dart';
 
 class HomeController extends GetxController {
   late final List<StatelessWidget> screens;
@@ -14,37 +13,53 @@ class HomeController extends GetxController {
   final RxInt _currentIndex = 0.obs;
   final Rx<bool> _hideNavBarAndFloatingButton = false.obs;
 
-  late PageController? _controller;
+  late ZoomDrawerController _controller;
 
   int get currentIndex => _currentIndex.value;
 
-  PageController? get controller => _controller;
+  ZoomDrawerController get controller => _controller;
 
   bool get hideNavBarAndFloatingButton => _hideNavBarAndFloatingButton.value;
+
+  final RxBool isDrawerOpen = false.obs;
 
   @override
   void onInit() {
     screens = <StatelessWidget>[
-      const InboxScreen(),
-      const NotificationScreen(),
-      const AccountDetailsScreen(),
+      const InboxScreen(key: ValueKey<String>('inbox')),
+      NotificationScreen(key: const ValueKey<String>('notification')),
+      AccountDetailsScreen(key: const ValueKey<String>('account_details')),
     ];
-    Get.put(RoomsController());
-    Get.put(NotificationsController());
-    _controller = PageController(initialPage: _currentIndex.value);
+    _controller = ZoomDrawerController();
+    Future.delayed(const Duration(seconds: 1), () {
+      _controller.stateNotifier?.addListener(() {
+        if (_controller.isOpen!()) {
+          isDrawerOpen.value = true;
+        } else {
+          isDrawerOpen.value = false;
+        }
+      });
+    });
+
     super.onInit();
   }
 
-  void onCurrentIndexChanged(final int index) {
-    _currentIndex.value = index;
+  @override
+  void onClose() {
+    _controller.stateNotifier!.dispose();
+    super.onClose();
   }
 
   void changeIndex(final int index) {
-    _controller?.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
-    );
+    if (_controller.toggle != null) {
+      _controller.toggle!.call()?.then((value) => _currentIndex.value = index);
+    }
+  }
+
+  void toggleDrawer() {
+    if (_controller.toggle != null) {
+      _controller.toggle!.call();
+    }
   }
 
   void navigate(final String routeName) {

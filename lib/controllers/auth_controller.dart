@@ -29,8 +29,6 @@ import '../widgets/screens/splash/splash_screen.dart';
 import 'socket_controller.dart';
 
 class _AuthStatesMessages {
-  static const String fetchingYourPrevSession =
-      'Fetching Your Previous Session';
   static const String sessionRetrieved = 'Session Retrieved';
   static const String sessionNotRetrieved =
       'Session Not Retrieved\nKindly authenticate yourself';
@@ -104,7 +102,7 @@ class AuthController extends GetxController {
       }
       _authenticatedUser.value = currentUser;
 
-      await Future.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(seconds: 1));
       afterAuthenticated();
       await const CacheManagement().initializeCache();
     } catch (error) {
@@ -113,7 +111,7 @@ class AuthController extends GetxController {
     _authState.value = AuthStates.completed;
   }
 
-  Future _onLogin(final CurrentUserModel user) async {
+  Future<void> _onLogin(final CurrentUserModel user) async {
     if (user.publicKey.isEmpty ||
         user.privateKey == null ||
         user.privateKey!.isEmpty) {

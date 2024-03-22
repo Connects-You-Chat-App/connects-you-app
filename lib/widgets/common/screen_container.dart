@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import '../../controllers/settings_controller.dart';
 
 class ScreenContainer extends GetView<SettingController> {
-
   const ScreenContainer({
     required this.child,
     this.statusBarColor,
@@ -17,6 +16,7 @@ class ScreenContainer extends GetView<SettingController> {
     this.navigationBarIconBrightness,
     super.key,
   });
+
   final Widget child;
   final Color? statusBarColor;
   final Color? navigationBarColor;
@@ -43,7 +43,9 @@ class ScreenContainer extends GetView<SettingController> {
       );
 
       return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: overLayStyle, child: child);
+        value: overLayStyle,
+        child: child,
+      );
     } else {
       return child;
     }

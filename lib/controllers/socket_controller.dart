@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Notification;
+import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
@@ -6,6 +7,7 @@ import '../constants/socket_events.dart';
 import '../constants/url.dart';
 import '../models/base/notification.dart';
 import '../models/objects/room_with_room_users_and_messages.dart';
+import '../utils/generate_shared_key.dart';
 import 'auth_controller.dart';
 import 'notifications_controller.dart';
 import 'rooms_controller.dart';
@@ -109,10 +111,17 @@ class SocketController extends GetxController {
           message.id,
         );
       } else {
+        final List<UserWiseSharedKeyResponse> sharedKey =
+            await getSharedKeyWithOtherUsers(
+                [UserModel.fromMessageUserModel(message.senderUser!)]);
+        message.message =
+            await AesGcmEncryption(secretKey: sharedKey.first.sharedKey)
+                .decryptString(message.message);
         await Get.find<RoomsController>().addMessageToRoom(message);
       }
     });
 
+//TODO:fix: this is not workign
     socket.on(SocketEvents.ROOM_MESSAGE_DELIVERED, (final dynamic data) {
       final List<String> messageIds =
           (data['messageIds'] as List<dynamic>).cast<String>();

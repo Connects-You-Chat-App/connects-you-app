@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:get/get.dart';
 
@@ -33,7 +34,17 @@ class CacheManagement {
   const CacheManagement();
 
   Future<void> initializeCache() async {
-    await _fetchRoomsAndMessages();
+    try {
+      await _fetchRoomsAndMessages();
+    } catch (e) {
+      debugPrintStack(
+          label: e.toString(), maxFrames: 10, stackTrace: StackTrace.current);
+      Get.snackbar(
+        'Error',
+        'Error while fetching rooms and messages',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   Future<void> _fetchRoomsAndMessages() async {

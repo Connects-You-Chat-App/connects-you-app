@@ -12,12 +12,14 @@ class MessageUserModel extends _MessageUserModel
   MessageUserModel(
     String id,
     String name,
-    String email, {
+    String email,
+    String publicKey, {
     String? photoUrl,
   }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'name', name);
     RealmObjectBase.set(this, 'email', email);
+    RealmObjectBase.set(this, 'publicKey', publicKey);
     RealmObjectBase.set(this, 'photoUrl', photoUrl);
   }
 
@@ -40,6 +42,13 @@ class MessageUserModel extends _MessageUserModel
 
   @override
   set email(String value) => RealmObjectBase.set(this, 'email', value);
+
+  @override
+  String get publicKey =>
+      RealmObjectBase.get<String>(this, 'publicKey') as String;
+
+  @override
+  set publicKey(String value) => RealmObjectBase.set(this, 'publicKey', value);
 
   @override
   String? get photoUrl =>
@@ -66,6 +75,7 @@ class MessageUserModel extends _MessageUserModel
       SchemaProperty('id', RealmPropertyType.string),
       SchemaProperty('name', RealmPropertyType.string),
       SchemaProperty('email', RealmPropertyType.string),
+      SchemaProperty('publicKey', RealmPropertyType.string),
       SchemaProperty('photoUrl', RealmPropertyType.string, optional: true),
     ]);
   }
@@ -75,6 +85,7 @@ class MessageUserModel extends _MessageUserModel
         json['id'] as String,
         json['name'] as String,
         json['email'] as String,
+        json['publicKey'] as String,
         photoUrl: json['photoUrl'] as String?,
       );
 }
@@ -454,6 +465,16 @@ class UserModel extends _UserModel
         json['publicKey'] as String,
         photoUrl: json['photoUrl'] as String?,
         description: json['description'] as String?,
+      );
+
+  factory UserModel.fromMessageUserModel(
+          final MessageUserModel messageUserModel) =>
+      UserModel(
+        messageUserModel.id,
+        messageUserModel.name,
+        messageUserModel.email,
+        messageUserModel.publicKey,
+        photoUrl: messageUserModel.photoUrl,
       );
 }
 

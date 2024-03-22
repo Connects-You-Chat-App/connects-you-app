@@ -213,8 +213,8 @@ class _RoomWithRoomUsersAndMessagesModelService {
 
   Stream<RealmResultsChanges<MessageModel>> getRoomMessageStream(
       final String roomId) {
-    final RealmResults<MessageModel> messages =
-        _realm.query<MessageModel>('roomId = \$0', [roomId]);
+    final RealmResults<MessageModel> messages = _realm
+        .query<MessageModel>('roomId = \$0 SORT(updatedAt DESC)', [roomId]);
     return messages.changes;
   }
 

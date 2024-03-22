@@ -48,6 +48,7 @@ dependencies:
   realm: ^1.9.0
   uuid: ^4.2.1
   device_info_plus: ^9.1.1
+  flutter_zoom_drawer: ^3.2.0
 
   flutter_cryptography:
     path: "packages/flutter_cryptography"

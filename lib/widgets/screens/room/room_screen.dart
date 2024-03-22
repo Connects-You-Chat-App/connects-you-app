@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:realm/realm.dart';
 
-import '../../../constants/message.dart';
+import '../../../controllers/auth_controller.dart';
 import '../../../controllers/room_controller.dart';
 import '../../../models/objects/room_with_room_users_and_messages.dart';
 import '../../common/screen_container.dart';
+import 'chat_bubble.dart';
+import 'input_box.dart';
+import 'message_bubble_config.dart';
 
-class RoomScreen extends StatelessWidget {
+class RoomScreen extends GetView<AuthController> {
   RoomScreen({super.key}) {
     _roomController = Get.put(RoomController());
   }
@@ -15,86 +18,104 @@ class RoomScreen extends StatelessWidget {
   static const String routeName = '/room';
 
   late final RoomController _roomController;
+  final Set<String> _roomUserIds = <String>{};
+
+  MessageBubbleConfig getMessageConfig(
+      final List<MessageModel> messages, final int index) {
+    final MessageModel message = messages[index];
+    final bool isMine =
+        controller.authenticatedUser?.id == message.senderUser?.id;
+
+    final bool isDelivered = message.messageStatuses.length ==
+        _roomController.room.roomUsers.length - 1;
+
+    if (_roomUserIds.isEmpty) {
+      _roomUserIds.addAll(
+        _roomController.room.roomUsers.map((final UserModel user) => user.id),
+      );
+    }
+
+    final bool isRead = isDelivered &&
+        message.messageStatuses.every(
+          (final MessageStatusModel status) =>
+              status.isRead && _roomUserIds.contains(status.userId),
+        );
+
+    final bool isGroupLast = index == 0 ||
+        messages[index - 1].senderUser?.id != message.senderUser?.id;
+    final bool isGroupFirst = index == messages.length - 1 ||
+        messages[index + 1].senderUser?.id != message.senderUser?.id;
+
+    final bool isDaysFirst = index == messages.length - 1 ||
+        messages[index + 1].createdAt.day != message.createdAt.day;
+
+    return MessageBubbleConfig(
+      isMine: isMine,
+      message: message,
+      isDelivered: isDelivered,
+      isRead: isRead,
+      isGroupFirst: isGroupFirst,
+      isGroupLast: isGroupLast,
+      isDaysFirst: isDaysFirst,
+    );
+  }
 
   @override
   Widget build(final BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return ScreenContainer(
       child: Scaffold(
         appBar: AppBar(
           title: Text(_roomController.room.name),
         ),
-        body: Stack(
+        backgroundColor: theme.colorScheme.background,
+        body: Column(
           children: <Widget>[
-            Container(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: <Widget>[
-                  Expanded(
-                    child: StreamBuilder<RealmResultsChanges<MessageModel>>(
-                      stream: _roomController.messagesStream,
-                      builder: (
-                        final BuildContext context,
-                        final AsyncSnapshot<RealmResultsChanges<MessageModel>>
-                            snapshot,
-                      ) {
-                        if (snapshot.hasData) {
-                          final List<MessageModel> messages =
-                              snapshot.data!.results.toList();
-
-                          return ListView.builder(
-                            itemCount: messages.length,
-                            controller: _roomController.scrollController,
-                            itemBuilder: (
-                              final BuildContext context,
-                              final int index,
-                            ) {
-                              final MessageModel message = messages[index];
-                              return ListTile(
-                                title: Text(message.message + message.status),
-                                subtitle: Text(message.senderUser!.name),
-                              );
-                            },
-                          );
-                        }
-                        return const SizedBox();
-                      },
-                    ),
-                    // child: Str  ListView.builder(
-                    //     itemCount: _roomController.messages.length,
-                    //     itemBuilder:
-                    //         (final BuildContext context, final int index) {
-                    //       final MessageModel message =
-                    //           _roomController.messages[index];
-                    //       return ListTile(
-                    //         title: Text(message.message + message.status),
-                    //         subtitle: Text(message.senderUser!.name),
-                    //       );
-                    //     },
-                    // ),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+                child: ColoredBox(
+                  color: theme.colorScheme.secondaryContainer,
+                  child: StreamBuilder<RealmResultsChanges<MessageModel>>(
+                    stream: _roomController.messagesStream,
+                    builder: (
+                      final BuildContext context,
+                      final AsyncSnapshot<RealmResultsChanges<MessageModel>>
+                          snapshot,
+                    ) {
+                      if (snapshot.hasData) {
+                        final List<MessageModel> messages =
+                            snapshot.data!.results.toList();
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          reverse: true,
+                          itemCount: messages.length,
+                          controller: _roomController.scrollController,
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          itemBuilder: (
+                            final BuildContext context,
+                            final int index,
+                          ) {
+                            final MessageBubbleConfig config =
+                                getMessageConfig(messages, index);
+                            return ChatBubble(messageConfig: config);
+                          },
+                        );
+                      }
+                      return const SizedBox();
+                    },
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    maxLines: 5,
-                    minLines: 1,
-                    autofocus: true,
-                    controller: _roomController.messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: () => _roomController.sendMessage(
-                          message: _roomController.messageController.text,
-                          type: MessageType.TEXT,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
+            ColoredBox(
+              color: theme.colorScheme.secondaryContainer,
+              child: const InputBox(),
+            )
           ],
         ),
       ),

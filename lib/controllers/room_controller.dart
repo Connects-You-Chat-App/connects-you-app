@@ -117,6 +117,7 @@ class RoomController extends GetxController {
         currentUser.id,
         currentUser.name,
         currentUser.email,
+        currentUser.publicKey,
         photoUrl: currentUser.photoUrl,
       ),
       belongsToMessage: belongsToMessage,
@@ -134,7 +135,7 @@ class RoomController extends GetxController {
     ));
 
     scrollController.animateTo(
-      scrollController.position.maxScrollExtent,
+      -scrollController.position.maxScrollExtent,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );

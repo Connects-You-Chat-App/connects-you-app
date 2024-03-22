@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AppTheme {
+mixin AppTheme {
   static const List<Color> gradientColors = <Color>[
     Color.fromRGBO(0, 100, 255, 2),
     Color.fromRGBO(0, 125, 255, 1),
@@ -195,13 +195,14 @@ class AppTheme {
   );
 
   static final ThemeData appThemeLight = ThemeData(
+    useMaterial3: false,
     fontFamily: 'QuickSand',
     primaryColor: Colors.blue,
     textTheme: lightTextTheme,
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
       elevation: 0.0,
-      centerTitle: true,
+      centerTitle: false,
       iconTheme: IconThemeData(
         color: Colors.blue,
         size: 24.0,
@@ -211,8 +212,8 @@ class AppTheme {
         size: 24.0,
       ),
       titleTextStyle: TextStyle(
-        color: Colors.blue,
-        fontSize: 18.0,
+        color: Colors.black,
+        fontSize: 32.0,
         fontWeight: FontWeight.w700,
         fontFamily: 'QuickSand',
       ),
@@ -357,19 +358,21 @@ class AppTheme {
       accentColor: Colors.blue,
       errorColor: const Color(0xFFFD2671),
     ).copyWith(
-      secondary: Colors.blueAccent,
-      shadow: Colors.blueAccent,
-    ),
+        secondary: Colors.blueAccent,
+        shadow: Colors.blueAccent,
+        // #e6f2ff,
+        secondaryContainer: const Color(0xFFE6F2FF)),
   );
 
   static final ThemeData appThemeDark = ThemeData(
+    useMaterial3: false,
     fontFamily: 'QuickSand',
     textTheme: darkTextTheme,
     primaryColor: Colors.blue,
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.black,
       elevation: 0.0,
-      centerTitle: true,
+      centerTitle: false,
       iconTheme: IconThemeData(
         color: Colors.blue,
         size: 24.0,
@@ -379,8 +382,8 @@ class AppTheme {
         size: 24.0,
       ),
       titleTextStyle: TextStyle(
-        color: Colors.blue,
-        fontSize: 18.0,
+        color: Colors.white,
+        fontSize: 32.0,
         fontWeight: FontWeight.w700,
         fontFamily: 'QuickSand',
       ),
@@ -528,6 +531,7 @@ class AppTheme {
     ).copyWith(
       secondary: Colors.blueAccent,
       shadow: Colors.blueAccent,
+      secondaryContainer: const Color(0xFF191C3D),
     ),
   );
 }
