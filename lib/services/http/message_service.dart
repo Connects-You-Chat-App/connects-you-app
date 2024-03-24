@@ -10,11 +10,11 @@ import '../../models/responses/main.dart';
 import 'server.dart';
 
 class MessageService {
+  factory MessageService() => _cachedInstance ??= const MessageService._();
+
   const MessageService._();
 
   static MessageService? _cachedInstance;
-
-  factory MessageService() => _cachedInstance ??= const MessageService._();
 
   Future<Response<bool>> sendMessage(
       final SendMessageRequest sendMessageRequest) async {
@@ -62,5 +62,30 @@ class MessageService {
       message: body.get('message', '') as String? ?? '',
       response: <MessageModel>[],
     );
+  }
+
+  Future<Response<bool>> markMessagesAsRead(
+      final String roomId, final List<String> messageIds) async {
+    final DecodedResponse response = await ServerApi().post(
+      endpoint: Endpoints.MARK_ROOM_MESSAGES_READ,
+      body: json.encode(<String, dynamic>{
+        'roomId': roomId,
+        'messageIds': messageIds,
+      }),
+    );
+    final Map<String, dynamic> body =
+        response.decodedBody as Map<String, dynamic>;
+    if (response.statusCode == StatusCodes.SUCCESS) {
+      if (body.containsKey('message')) {
+        return Response<bool>(
+            code: response.statusCode,
+            message: body.get('message', '') as String? ?? '',
+            response: true);
+      }
+    }
+    return Response<bool>(
+        code: response.statusCode,
+        message: body.get('message', '') as String? ?? '',
+        response: false);
   }
 }

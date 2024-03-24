@@ -1,23 +1,22 @@
 part of 'main.dart';
 
 class _RoomWithRoomUsersAndMessagesModelService {
+  factory _RoomWithRoomUsersAndMessagesModelService() =>
+      _roomWithRoomUsersModelService ??
+      _RoomWithRoomUsersAndMessagesModelService._();
+
   _RoomWithRoomUsersAndMessagesModelService._() {
     _openRealm();
   }
 
   static _RoomWithRoomUsersAndMessagesModelService?
-      _roomWithRoomUsersAndMessagesModelService;
-
-  factory _RoomWithRoomUsersAndMessagesModelService() =>
-      _roomWithRoomUsersAndMessagesModelService =
-          _roomWithRoomUsersAndMessagesModelService ??
-              _RoomWithRoomUsersAndMessagesModelService._();
+      _roomWithRoomUsersModelService;
 
   static late Realm _realm;
 
-  _openRealm() {
-    final Configuration _config = Configuration.local(
-      [
+  void _openRealm() {
+    final Configuration config = Configuration.local(
+      <SchemaObject>[
         RoomWithRoomUsersAndMessagesModel.schema,
         UserModel.schema,
         MessageModel.schema,
@@ -26,13 +25,13 @@ class _RoomWithRoomUsersAndMessagesModelService {
       ],
       encryptionKey: Keys.REALM_STORAGE_KEY,
     );
-    _realm = Realm(_config);
+    _realm = Realm(config);
   }
 
-  static closeRealm() {
-    if (_roomWithRoomUsersAndMessagesModelService != null && !_realm.isClosed) {
+  static void closeRealm() {
+    if (_roomWithRoomUsersModelService != null && !_realm.isClosed) {
       _realm.close();
-      _roomWithRoomUsersAndMessagesModelService = null;
+      _roomWithRoomUsersModelService = null;
     }
   }
 
@@ -91,11 +90,11 @@ class _RoomWithRoomUsersAndMessagesModelService {
 
   List<MessageModel> getRoomMessages(final String roomId) {
     final RealmResults<MessageModel> messages =
-        _realm.query<MessageModel>('roomId = \$0', [roomId]);
+        _realm.query<MessageModel>(r'roomId = $0', <String>[roomId]);
     return messages.toList();
   }
 
-  bool updateMessageStatus(String messageId, String status) {
+  bool updateMessageStatus(final String messageId, final String status) {
     try {
       final MessageModel? message = _realm.find<MessageModel>(messageId);
       _realm.write(() {
@@ -111,18 +110,19 @@ class _RoomWithRoomUsersAndMessagesModelService {
   }
 
   bool updateMessageStatusToDelivered(
-      List<String> messageIds, List<String> userIds) {
+      final List<String> messageIds, final List<String> userIds) {
     try {
       final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
-        "id IN \$0",
-        [messageIds],
+        r'id IN $0',
+        <List<String>>[messageIds],
       );
       _realm.write(() {
         for (final MessageModel message in messages) {
           final List<MessageStatusModel> messageStatuses =
               message.messageStatuses;
-          final Set<String> userIdSet =
-              messageStatuses.map((e) => e.userId).toSet();
+          final Set<String> userIdSet = messageStatuses
+              .map((final MessageStatusModel e) => e.userId)
+              .toSet();
           for (final String userId in userIds) {
             if (!userIdSet.contains(userId)) {
               messageStatuses.add(
@@ -145,17 +145,18 @@ class _RoomWithRoomUsersAndMessagesModelService {
   }
 
   bool updateMessageStatusToRead(
-      List<String> messageIds, List<String> userIds) {
+      final List<String> messageIds, final List<String> userIds) {
     try {
       final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
-        "id IN \$0",
-        [messageIds],
+        r'id IN $0',
+        <List<String>>[messageIds],
       );
       _realm.write(() {
         for (final MessageModel message in messages) {
           final List<MessageStatusModel> messageStatuses =
               message.messageStatuses;
-          final Map<String, MessageStatusModel> userMap = {
+          final Map<String, MessageStatusModel> userMap =
+              <String, MessageStatusModel>{
             for (final MessageStatusModel messageStatus in messageStatuses)
               messageStatus.userId: messageStatus
           };
@@ -190,12 +191,13 @@ class _RoomWithRoomUsersAndMessagesModelService {
       final String userId) {
     final RealmResults<RoomWithRoomUsersAndMessagesModel> rooms =
         _realm.query<RoomWithRoomUsersAndMessagesModel>(
-      "roomUsers.id = \$0",
-      [userId],
+      r'roomUsers.id = $0',
+      <String>[userId],
     );
     if (rooms.isNotEmpty) {
       return rooms.first;
     }
+    return null;
   }
 
   bool resetRooms(final List<RoomWithRoomUsersAndMessagesModel> rooms) {
@@ -213,8 +215,8 @@ class _RoomWithRoomUsersAndMessagesModelService {
 
   Stream<RealmResultsChanges<MessageModel>> getRoomMessageStream(
       final String roomId) {
-    final RealmResults<MessageModel> messages = _realm
-        .query<MessageModel>('roomId = \$0 SORT(updatedAt DESC)', [roomId]);
+    final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
+        r'roomId = $0 SORT(createdAt DESC)', <String>[roomId]);
     return messages.changes;
   }
 
@@ -230,6 +232,24 @@ class _RoomWithRoomUsersAndMessagesModelService {
       _realm.write(() {
         // _realm.deleteAll<MessageModel>();
         _realm.addAll(messages, update: true);
+      });
+      return true;
+    } on RealmException catch (e) {
+      debugPrint(e.message);
+      return false;
+    }
+  }
+
+  bool markSenderMessageRead(final List<String> messagesIds) {
+    try {
+      final RealmResults<MessageModel> messages = _realm.query<MessageModel>(
+        r'id IN $0',
+        <List<String>>[messagesIds],
+      );
+      _realm.write(() {
+        for (final MessageModel message in messages) {
+          message.status = MessageStatus.READ_BY_ME;
+        }
       });
       return true;
     } on RealmException catch (e) {

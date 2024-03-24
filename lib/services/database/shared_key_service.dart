@@ -1,26 +1,26 @@
 part of 'main.dart';
 
 class _SharedKeyModelService {
+  factory _SharedKeyModelService() => _sharedKeyModelService =
+      _sharedKeyModelService ?? _SharedKeyModelService._();
+
   _SharedKeyModelService._() {
     _openRealm();
   }
 
   static _SharedKeyModelService? _sharedKeyModelService;
 
-  factory _SharedKeyModelService() => _sharedKeyModelService =
-      _sharedKeyModelService ?? _SharedKeyModelService._();
-
   static late Realm _realm;
 
-  static _openRealm() {
-    final Configuration _config = Configuration.local(
-      [SharedKeyModel.schema],
+  void _openRealm() {
+    final Configuration config = Configuration.local(
+      <SchemaObject>[SharedKeyModel.schema],
       encryptionKey: Keys.REALM_STORAGE_KEY,
     );
-    _realm = Realm(_config);
+    _realm = Realm(config);
   }
 
-  static closeRealm() {
+  static void closeRealm() {
     if (_sharedKeyModelService != null && !_realm.isClosed) {
       _realm.close();
       _sharedKeyModelService = null;
@@ -58,8 +58,8 @@ class _SharedKeyModelService {
   SharedKeyModel? getSharedKeyForUser(final String userId) {
     final RealmResults<SharedKeyModel> sharedKeys =
         _realm.query<SharedKeyModel>(
-      'forUserId = \$0',
-      [userId],
+      r'forUserId = $0',
+      <String>[userId],
     );
     if (sharedKeys.isEmpty) {
       return null;
@@ -70,8 +70,8 @@ class _SharedKeyModelService {
   SharedKeyModel? getSharedKeyForRoom(final String roomId) {
     final RealmResults<SharedKeyModel> sharedKeys =
         _realm.query<SharedKeyModel>(
-      'forRoomId = \$0',
-      [roomId],
+      r'forRoomId = $0',
+      <String>[roomId],
     );
     if (sharedKeys.isEmpty) {
       return null;

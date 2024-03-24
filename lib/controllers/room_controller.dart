@@ -1,24 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:flutter_cryptography/helper.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide Response;
 import 'package:realm/realm.dart';
 
 import '../constants/message.dart';
+import '../constants/socket_events.dart';
 import '../enums/room.dart';
 import '../models/objects/current_user.dart';
 import '../models/objects/room_with_room_users_and_messages.dart';
 import '../models/objects/shared_key.dart';
 import '../models/requests/send_message_request.dart';
+import '../models/responses/main.dart';
 import '../services/database/main.dart';
 import '../services/http/server.dart';
 import '../utils/generate_shared_key.dart';
 import 'auth_controller.dart';
 import 'rooms_controller.dart';
+import 'socket_controller.dart';
 
 class RoomController extends GetxController {
   late final RoomWithRoomUsersAndMessagesModel room;
+
+  final RxSet<UserModel> _typingUsers = RxSet<UserModel>();
+  Map<String, UserModel>? _roomUsersMap;
 
   late final TextEditingController messageController;
 
@@ -27,9 +35,15 @@ class RoomController extends GetxController {
 
   Stream<RealmResultsChanges<MessageModel>>? messagesStream;
 
+  Set<UserModel> get typingUsers => _typingUsers;
+
   late final ScrollController scrollController;
 
-  Future _extractSharedKey() async {
+  late final SocketController _socketController;
+
+  late final AuthController _authController;
+
+  Future<void> _extractSharedKey() async {
     final AuthController authController = Get.find<AuthController>();
     final CurrentUserModel currentUser = authController.authenticatedUser!;
 
@@ -44,13 +58,11 @@ class RoomController extends GetxController {
 
       if (sharedKey == null) {
         final List<UserWiseSharedKeyResponse> sharedKeyRes =
-            await getSharedKeyWithOtherUsers([otherUser], force: true);
-        if (sharedKeyRes.first?.sharedKey == null) {
-          return;
-        }
+            await getSharedKeyWithOtherUsers(<UserModel>[otherUser],
+                force: true);
         _sharedKey = sharedKeyRes.first.sharedKey;
       } else {
-        _sharedKey = sharedKey!.key;
+        _sharedKey = sharedKey.key;
       }
     } else {
       _sharedKey =
@@ -66,8 +78,29 @@ class RoomController extends GetxController {
       return room;
     }
     final String roomId = args['roomId'] as String;
-    return RealmService.roomWithRoomUsersAndMessagesModelService
-        .getRoom(roomId)!;
+    return RealmService.RoomWithRoomUsersModelService.getRoom(roomId);
+  }
+
+  Timer? _typingTimer;
+
+  void onTyping(final dynamic data) {
+    if (data['roomId'] == room.id &&
+        data['userId'] != _authController.authenticatedUser!.id) {
+      _roomUsersMap ??= <String, UserModel>{
+        for (final UserModel user in room.roomUsers) user.id: user,
+      };
+      if (_typingTimer != null && _typingTimer!.isActive) {
+        _typingTimer!.cancel();
+      }
+      // _typingUser.value = _roomUsersMap![data['userId'] as String];
+      _typingUsers.add(_roomUsersMap![data['userId'] as String]!);
+      _typingTimer = Timer(
+        const Duration(seconds: 2),
+        () {
+          _typingUsers.remove(_roomUsersMap![data['userId'] as String]);
+        },
+      );
+    }
   }
 
   @override
@@ -76,15 +109,20 @@ class RoomController extends GetxController {
     messageController = TextEditingController();
     _roomsController = Get.find<RoomsController>();
     room = getRoomDetails();
-    messagesStream = RealmService.roomWithRoomUsersAndMessagesModelService
-        .getRoomMessageStream(room.id);
+    messagesStream =
+        RealmService.RoomWithRoomUsersModelService.getRoomMessageStream(
+            room.id);
     scrollController = ScrollController();
+    _authController = Get.find<AuthController>();
+    _socketController = Get.find<SocketController>();
+    _socketController.socket.on(SocketEvents.USER_TYPING, onTyping);
   }
 
   @override
   void onClose() {
     messageController.dispose();
     scrollController.dispose();
+    _socketController.socket.off(SocketEvents.USER_TYPING, onTyping);
     super.onClose();
   }
 
@@ -95,7 +133,7 @@ class RoomController extends GetxController {
     return AesGcmEncryption(secretKey: _sharedKey!).encryptString(message);
   }
 
-  Future sendMessage({
+  Future<void> sendMessage({
     required final String message,
     required final String type,
     final MessageModel? belongsToMessage,
@@ -139,5 +177,22 @@ class RoomController extends GetxController {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
+  }
+
+  Future<void> markMessagesAsRead(final List<String> messageIds) async {
+    final Response<bool> res =
+        await ServerApi.messageService.markMessagesAsRead(room.id, messageIds);
+    if (res.response) {
+      RealmService.RoomWithRoomUsersModelService.markSenderMessageRead(
+        messageIds,
+      );
+    }
+  }
+
+  void sendUserTypingStatus() {
+    _socketController.socket.emit(SocketEvents.USER_TYPING, {
+      'roomId': room.id,
+      'userId': _authController.authenticatedUser!.id,
+    });
   }
 }

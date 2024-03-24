@@ -16,25 +16,24 @@ class RoomsController extends GetxController {
   void onInit() {
     super.onInit();
     fetchRooms();
-    roomStream =
-        RealmService.roomWithRoomUsersAndMessagesModelService.getRoomStream();
+    roomStream = RealmService.RoomWithRoomUsersModelService.getRoomStream();
   }
 
   Future<void> fetchRooms() async {
     final Response<List<RoomWithRoomUsersAndMessagesModel>> response =
         await ServerApi.roomService.fetchRooms();
-    RealmService.roomWithRoomUsersAndMessagesModelService.resetRooms(
+    RealmService.RoomWithRoomUsersModelService.resetRooms(
       response.response.toList(),
     );
   }
 
   Future<void> addRoom(final RoomWithRoomUsersAndMessagesModel room) async {
-    RealmService.roomWithRoomUsersAndMessagesModelService.addRoom(room);
+    RealmService.RoomWithRoomUsersModelService.addRoom(room);
   }
 
   Future<void> addUserToRoom(final String roomId, final UserModel user) async {
-    RealmService.roomWithRoomUsersAndMessagesModelService
-        .addRoomUsersToRoom(roomId, [user]);
+    RealmService.RoomWithRoomUsersModelService.addRoomUsersToRoom(
+        roomId, [user]);
   }
 
   Future<void> addNewlyCreatedDuetRoom(
@@ -43,7 +42,7 @@ class RoomsController extends GetxController {
     final List<UserWiseSharedKeyResponse> sharedKeyRes =
         await getSharedKeyWithOtherUsers([otherUser], force: true);
 
-    RealmService.roomWithRoomUsersAndMessagesModelService.addRoom(room);
+    RealmService.RoomWithRoomUsersModelService.addRoom(room);
   }
 
   void redirectToRoom(final RoomWithRoomUsersAndMessagesModel room) {
@@ -56,12 +55,11 @@ class RoomsController extends GetxController {
   }
 
   Future<void> addMessageToRoom(final MessageModel message) async {
-    RealmService.roomWithRoomUsersAndMessagesModelService
-        .addMessages([message]);
+    RealmService.RoomWithRoomUsersModelService.addMessages([message]);
   }
 
   void updateMessageStatusToSent(final String messageId) {
-    RealmService.roomWithRoomUsersAndMessagesModelService.updateMessageStatus(
+    RealmService.RoomWithRoomUsersModelService.updateMessageStatus(
       messageId,
       MessageStatus.SENT,
     );
@@ -71,15 +69,15 @@ class RoomsController extends GetxController {
     final List<String> messageIds,
     final List<String> userIds,
   ) {
-    RealmService.roomWithRoomUsersAndMessagesModelService
-        .updateMessageStatusToDelivered(messageIds, userIds);
+    RealmService.RoomWithRoomUsersModelService.updateMessageStatusToDelivered(
+        messageIds, userIds);
   }
 
   void updateMessageStatusToRead(
     final List<String> messageIds,
     final List<String> userIds,
   ) {
-    RealmService.roomWithRoomUsersAndMessagesModelService
-        .updateMessageStatusToRead(messageIds, userIds);
+    RealmService.RoomWithRoomUsersModelService.updateMessageStatusToRead(
+        messageIds, userIds);
   }
 }

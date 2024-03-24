@@ -1,28 +1,28 @@
 part of 'main.dart';
 
 class _SecureStorageModelService {
-  static const String _id = '1';
+  factory _SecureStorageModelService() => _secureStorageModelService =
+      _secureStorageModelService ?? _SecureStorageModelService._();
 
   _SecureStorageModelService._() {
     _openRealm();
   }
 
-  static _SecureStorageModelService? _secureStorageModelService;
+  static const String _id = '1';
 
-  factory _SecureStorageModelService() => _secureStorageModelService =
-      _secureStorageModelService ?? _SecureStorageModelService._();
+  static _SecureStorageModelService? _secureStorageModelService;
 
   static late Realm _realm;
 
-  _openRealm() {
-    final Configuration _config = Configuration.local(
-      [SecureStorageModel.schema],
+  void _openRealm() {
+    final Configuration config = Configuration.local(
+      <SchemaObject>[SecureStorageModel.schema],
       encryptionKey: Keys.REALM_STORAGE_KEY,
     );
-    _realm = Realm(_config);
+    _realm = Realm(config);
   }
 
-  static closeRealm() {
+  static void closeRealm() {
     if (_secureStorageModelService != null && !_realm.isClosed) {
       _realm.close();
       _secureStorageModelService = null;
@@ -30,9 +30,9 @@ class _SecureStorageModelService {
   }
 
   Map<String, String>? getValue() {
-    final RealmResults<SecureStorageModel> _secureStorageModel =
+    final RealmResults<SecureStorageModel> secureStorageModel =
         _realm.all<SecureStorageModel>();
-    return _secureStorageModel.isEmpty ? null : _secureStorageModel.first.value;
+    return secureStorageModel.isEmpty ? null : secureStorageModel.first.value;
   }
 
   bool setValue(final Map<String, String> value) {
@@ -54,7 +54,10 @@ class _SecureStorageModelService {
     try {
       _realm.write(() {
         _realm.add<SecureStorageModel>(
-          SecureStorageModel(_id, value: {...(getValue() ?? {}), key: value}),
+          SecureStorageModel(_id, value: <String, String>{
+            ...getValue() ?? <String, String>{},
+            key: value
+          }),
           update: true,
         );
       });

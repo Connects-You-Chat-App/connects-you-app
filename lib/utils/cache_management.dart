@@ -49,9 +49,9 @@ class CacheManagement {
 
   Future<void> _fetchRoomsAndMessages() async {
     final List<RoomWithRoomUsersAndMessagesModel> rooms =
-        RealmService.roomWithRoomUsersAndMessagesModelService.getAllRooms();
+        RealmService.RoomWithRoomUsersModelService.getAllRooms();
     final List<MessageModel> messages =
-        RealmService.roomWithRoomUsersAndMessagesModelService.getAllMessages();
+        RealmService.RoomWithRoomUsersModelService.getAllMessages();
     final List<SharedKeyModel> sharedKeys =
         RealmService.sharedKeyModelService.getAllSharedKeys();
 
@@ -71,10 +71,9 @@ class CacheManagement {
 
     final Map<String, SharedKeyModel> sharedKeyMap =
         await mergeSharedKeys(sharedKeys, latestSharedKeys, user.userKey!);
-    final Map<String, List<MessageModel>> roomWiseMessages =
-        await mergeMessages(
-            messages, latestMessages, sharedKeys, user, sharedKeyMap);
-    mergeRooms(rooms, latestRooms, roomWiseMessages);
+    await mergeMessages(
+        messages, latestMessages, sharedKeys, user, sharedKeyMap);
+    mergeRooms(rooms, latestRooms);
 
     await storeRefreshedData(
       rooms,
@@ -111,7 +110,6 @@ class CacheManagement {
   void mergeRooms(
     final List<RoomWithRoomUsersAndMessagesModel> rooms,
     final List<dynamic> latestRooms,
-    final Map<String, List<MessageModel>> roomWiseMessages,
   ) {
     final Map<String, Map<int, RoomWithRoomUsersAndMessagesModel>>
         existingRoomsMap =
@@ -121,7 +119,7 @@ class CacheManagement {
       existingRoomsMap[room.id] = {i: room};
     }
 
-    latestRooms.forEach((final dynamic latestRoom) {
+    for (final dynamic latestRoom in latestRooms) {
       final Map<String, dynamic> latestRoomMap =
           latestRoom as Map<String, dynamic>;
       final RoomWithRoomUsersAndMessagesModel? existingRoom =
@@ -142,8 +140,6 @@ class CacheManagement {
         roomUsers: latestRoomUsers,
         description: latestRoomMap['description'] as String?,
         logoUrl: latestRoomMap['logoUrl'] as String?,
-        messages:
-            roomWiseMessages[latestRoomMap['id'] as String] ?? <MessageModel>[],
       );
       if (existingRoom == null) {
         rooms.add(roomObj);
@@ -152,7 +148,7 @@ class CacheManagement {
             existingRoomsMap[latestRoom['id'] as String]!.keys.first;
         rooms[index] = roomObj;
       }
-    });
+    }
   }
 
   Future<Map<String, List<MessageModel>>> mergeMessages(
@@ -351,9 +347,8 @@ class CacheManagement {
     final List<MessageModel> messages,
     final List<SharedKeyModel> sharedKeys,
   ) async {
-    RealmService.roomWithRoomUsersAndMessagesModelService.resetRooms(rooms);
-    RealmService.roomWithRoomUsersAndMessagesModelService
-        .resetMessages(messages);
+    RealmService.RoomWithRoomUsersModelService.resetRooms(rooms);
+    RealmService.RoomWithRoomUsersModelService.resetMessages(messages);
     RealmService.sharedKeyModelService.resetSharedKeys(sharedKeys);
   }
 }

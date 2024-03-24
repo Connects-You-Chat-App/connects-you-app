@@ -79,8 +79,7 @@ class UsersController extends GetxController {
 
   RoomWithRoomUsersAndMessagesModel? findDuetRoomFromState(
           final String userId) =>
-      RealmService.roomWithRoomUsersAndMessagesModelService
-          .getRoomFromRoomUserId(userId);
+      RealmService.RoomWithRoomUsersModelService.getRoomFromRoomUserId(userId);
 
   Future<void> createDuetIfNotExists(final int index) async {
     final String userId = _users[index].id;

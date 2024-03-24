@@ -1,26 +1,26 @@
 part of 'main.dart';
 
 class _CurrentUserModelService {
+  factory _CurrentUserModelService() => _currentUserModelService =
+      _currentUserModelService ?? _CurrentUserModelService._();
+
   _CurrentUserModelService._() {
     _openRealm();
   }
 
   static _CurrentUserModelService? _currentUserModelService;
 
-  factory _CurrentUserModelService() => _currentUserModelService =
-      _currentUserModelService ?? _CurrentUserModelService._();
-
   static late Realm _realm;
 
-  _openRealm() {
-    final Configuration _config = Configuration.local(
-      [CurrentUserModel.schema],
+  void _openRealm() {
+    final Configuration config = Configuration.local(
+      <SchemaObject>[CurrentUserModel.schema],
       encryptionKey: Keys.REALM_STORAGE_KEY,
     );
-    _realm = Realm(_config);
+    _realm = Realm(config);
   }
 
-  static closeRealm() {
+  static void closeRealm() {
     if (_currentUserModelService != null && !_realm.isClosed) {
       _realm.close();
       _currentUserModelService = null;

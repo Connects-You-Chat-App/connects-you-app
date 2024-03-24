@@ -28,6 +28,7 @@ class Drawer extends GetView<HomeController> {
   Widget build(final BuildContext context) {
     final MediaQueryData mediaQuery = MediaQuery.of(context);
     return ScreenContainer(
+      showSocketConnection: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[

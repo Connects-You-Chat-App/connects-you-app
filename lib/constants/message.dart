@@ -19,4 +19,6 @@ class MessageType {
 class MessageStatus {
   static const String PENDING = 'PENDING';
   static const String SENT = 'SENT';
+
+  static const String READ_BY_ME = 'READ_BY_ME';
 }

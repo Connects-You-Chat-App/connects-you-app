@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:realm/realm.dart';
 
+import '../../../constants/message.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../../controllers/room_controller.dart';
 import '../../../models/objects/room_with_room_users_and_messages.dart';
 import '../../common/screen_container.dart';
+import 'app_bar.dart';
 import 'chat_bubble.dart';
 import 'input_box.dart';
 import 'message_bubble_config.dart';
@@ -19,6 +21,27 @@ class RoomScreen extends GetView<AuthController> {
 
   late final RoomController _roomController;
   final Set<String> _roomUserIds = <String>{};
+
+  void _filterUnreadMessages(final List<MessageBubbleConfig> messages) {
+    if (messages.isEmpty) {
+      return;
+    }
+
+    final List<String> unreadMessages = [];
+    for (final MessageBubbleConfig element in messages) {
+      if (!element.isMine) {
+        if (element.message.status != MessageStatus.READ_BY_ME) {
+          unreadMessages.add(element.message.id);
+        } else {
+          break;
+        }
+      }
+    }
+
+    if (unreadMessages.isNotEmpty) {
+      _roomController.markMessagesAsRead(unreadMessages);
+    }
+  }
 
   MessageBubbleConfig getMessageConfig(
       final List<MessageModel> messages, final int index) {
@@ -65,9 +88,7 @@ class RoomScreen extends GetView<AuthController> {
     final ThemeData theme = Theme.of(context);
     return ScreenContainer(
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(_roomController.room.name),
-        ),
+        appBar: AppBar(title: const RoomAppBar()),
         backgroundColor: theme.colorScheme.background,
         body: Column(
           children: <Widget>[
@@ -89,6 +110,17 @@ class RoomScreen extends GetView<AuthController> {
                       if (snapshot.hasData) {
                         final List<MessageModel> messages =
                             snapshot.data!.results.toList();
+
+                        int i = 0;
+                        final List<MessageBubbleConfig> messageConfigs =
+                            messages
+                                .map(
+                                  (final MessageModel message) =>
+                                      getMessageConfig(messages, i++),
+                                )
+                                .toList();
+                        _filterUnreadMessages(messageConfigs);
+
                         return ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           reverse: true,
@@ -100,9 +132,8 @@ class RoomScreen extends GetView<AuthController> {
                             final BuildContext context,
                             final int index,
                           ) {
-                            final MessageBubbleConfig config =
-                                getMessageConfig(messages, index);
-                            return ChatBubble(messageConfig: config);
+                            return ChatBubble(
+                                messageConfig: messageConfigs[index]);
                           },
                         );
                       }
@@ -114,7 +145,7 @@ class RoomScreen extends GetView<AuthController> {
             ),
             ColoredBox(
               color: theme.colorScheme.secondaryContainer,
-              child: const InputBox(),
+              child: InputBox(),
             )
           ],
         ),

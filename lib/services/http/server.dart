@@ -37,6 +37,8 @@ class Endpoints {
   static const String ALL_NOTIFICATIONS = '${Endpoints.NOTIFICATION}/all';
   static const String SEND_MESSAGE = '${Endpoints.MESSAGE}/send';
   static const String GET_ROOM_MESSAGES = '${Endpoints.MESSAGE}/by-room-id';
+  static const String MARK_ROOM_MESSAGES_READ =
+      '${Endpoints.MESSAGE}/mark-as-read';
   static const String UPDATED_DATA = '$prefix/updated-data';
 }
 

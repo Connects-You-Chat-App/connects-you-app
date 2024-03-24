@@ -121,7 +121,6 @@ class SocketController extends GetxController {
       }
     });
 
-//TODO:fix: this is not workign
     socket.on(SocketEvents.ROOM_MESSAGE_DELIVERED, (final dynamic data) {
       final List<String> messageIds =
           (data['messageIds'] as List<dynamic>).cast<String>();

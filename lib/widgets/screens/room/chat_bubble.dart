@@ -12,13 +12,41 @@ class ChatBubble extends GetView<AuthController> {
 
   final MessageBubbleConfig messageConfig;
 
+  Widget messageStatus() {
+    if (messageConfig.isMine) {
+      if (messageConfig.isRead) {
+        return const Icon(
+          Icons.done_all,
+          color: Colors.greenAccent,
+          size: 16.0,
+        );
+      } else if (messageConfig.isDelivered) {
+        return const Icon(
+          Icons.done_all,
+          color: Colors.white,
+          size: 16.0,
+        );
+      } else if (messageConfig.message.status == MessageStatus.SENT) {
+        return const Icon(
+          Icons.done,
+          color: Colors.white,
+          size: 16.0,
+        );
+      } else if (messageConfig.message.status == MessageStatus.PENDING) {
+        return const Icon(
+          Icons.access_time,
+          color: Colors.white,
+          size: 16.0,
+        );
+      }
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(final BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final MediaQueryData mediaQuery = MediaQuery.of(context);
-
-    print(
-        'id: ${messageConfig.message.id}, isMine: ${messageConfig.isMine}, isGroupFirst: ${messageConfig.isGroupFirst}, isGroupLast: ${messageConfig.isGroupLast}, isDaysFirst: ${messageConfig.isDaysFirst}');
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -43,104 +71,60 @@ class ChatBubble extends GetView<AuthController> {
             widthFactor: 0.85,
             child: Align(
               alignment: messageConfig.messageAlignment,
-              child: Stack(
-                children: [
-                  if (!messageConfig.isMine &&
-                      messageConfig.isGroupFirst &&
-                      messageConfig.message.senderUser?.photoUrl != null)
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: CircleAvatar(
-                          radius: 16.0,
-                          backgroundImage: NetworkImage(
-                            messageConfig.message.senderUser?.photoUrl ?? '',
-                          ),
-                        ),
-                      ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                    top: 4.0,
+                    bottom: 4.0,
+                    left: messageConfig.isMine ? 0 : 12.0,
+                    right: messageConfig.isMine ? 12.0 : 0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(
+                      messageConfig.isGroupFirst ? 24.0 : 12.0,
                     ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                        top: 4.0,
-                        bottom: 4.0,
-                        left: messageConfig.isMine ? 0 : 48.0,
-                        right: messageConfig.isMine ? 12.0 : 0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(
-                          messageConfig.isGroupFirst ? 24.0 : 12.0,
-                        ),
-                        topLeft: Radius.circular(
-                          messageConfig.isGroupFirst ? 24.0 : 12.0,
-                        ),
-                        bottomLeft: Radius.circular(
-                          messageConfig.isGroupLast ? 24.0 : 12.0,
-                        ),
-                        bottomRight: Radius.circular(
-                          messageConfig.isGroupLast ? 24.0 : 12.0,
-                        ),
+                    topLeft: Radius.circular(
+                      messageConfig.isGroupFirst ? 24.0 : 12.0,
+                    ),
+                    bottomLeft: Radius.circular(
+                      messageConfig.isGroupLast ? 24.0 : 12.0,
+                    ),
+                    bottomRight: Radius.circular(
+                      messageConfig.isGroupLast ? 24.0 : 12.0,
+                    ),
+                  ),
+                  child: BubbleBackground(
+                    colors: [
+                      if (messageConfig.isMine) ...const <Color>[
+                        Color(0xFF19B7FF),
+                        Color(0xFF491CCB),
+                      ] else ...const <Color>[
+                        Color(0xFF6C7689),
+                        Color(0xFF3A364B),
+                      ],
+                    ],
+                    child: DefaultTextStyle.merge(
+                      style: const TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.white,
                       ),
-                      child: BubbleBackground(
-                        colors: [
-                          if (messageConfig.isMine) ...const <Color>[
-                            Color(0xFF19B7FF),
-                            Color(0xFF491CCB),
-                          ] else ...const <Color>[
-                            Color(0xFF6C7689),
-                            Color(0xFF3A364B),
-                          ],
-                        ],
-                        child: DefaultTextStyle.merge(
-                          style: const TextStyle(
-                            fontSize: 16.0,
-                            color: Colors.white,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  messageConfig.message.message,
-                                ),
-                                if (messageConfig.isMine)
-                                  if (messageConfig.isRead)
-                                    const Icon(
-                                      Icons.done_all,
-                                      color: Colors.greenAccent,
-                                      size: 16.0,
-                                    )
-                                  else if (messageConfig.isDelivered)
-                                    const Icon(
-                                      Icons.done_all,
-                                      color: Colors.white,
-                                      size: 16.0,
-                                    )
-                                  else if (messageConfig.message.status ==
-                                      MessageStatus.SENT)
-                                    const Icon(
-                                      Icons.done,
-                                      color: Colors.white,
-                                      size: 16.0,
-                                    )
-                                  else if (messageConfig.message.status ==
-                                      MessageStatus.PENDING)
-                                    const Icon(
-                                      Icons.access_time,
-                                      color: Colors.white,
-                                      size: 16.0,
-                                    ),
-                              ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Stack(
+                          children: [
+                            Text(
+                              '${messageConfig.message.message}${messageConfig.isMine ? '     ' : ''}',
                             ),
-                          ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: messageStatus(),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),

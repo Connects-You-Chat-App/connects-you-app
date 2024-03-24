@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:realm/realm.dart';
 
 import '../../constants/keys.dart';
+import '../../constants/message.dart';
 import '../../models/objects/current_user.dart';
 import '../../models/objects/room_with_room_users_and_messages.dart';
 import '../../models/objects/secure_storage.dart';
@@ -17,7 +18,7 @@ class RealmService {
       _SharedKeyModelService();
 
   static _RoomWithRoomUsersAndMessagesModelService
-      get roomWithRoomUsersAndMessagesModelService =>
+      get RoomWithRoomUsersModelService =>
           _RoomWithRoomUsersAndMessagesModelService();
 
   static _SecureStorageModelService get secureStorageModelService =>
@@ -26,14 +27,14 @@ class RealmService {
   static _CurrentUserModelService get currentUserModelService =>
       _CurrentUserModelService();
 
-  static closeAllRealms() {
+  static void closeAllRealms() {
     _SharedKeyModelService.closeRealm();
     _RoomWithRoomUsersAndMessagesModelService.closeRealm();
     _SecureStorageModelService.closeRealm();
     _CurrentUserModelService.closeRealm();
   }
 
-  static deleteAllRealms() {
+  static void deleteAllRealms() {
     closeAllRealms();
     Realm.deleteRealm(Configuration.defaultRealmPath);
   }
