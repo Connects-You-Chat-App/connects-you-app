@@ -3,15 +3,13 @@ import 'dart:developer';
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:flutter_cryptography/diffie_hellman.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 
-import '../constants/hive_box_keys.dart';
 import '../controllers/auth_controller.dart';
-import '../models/base/user.dart';
-import '../models/common/current_user.dart';
-import '../models/common/shared_key.dart';
-import '../models/objects/shared_key_hive_object.dart';
-import '../service/server.dart';
+import '../models/objects/current_user.dart';
+import '../models/objects/room_with_room_users_and_messages.dart';
+import '../models/objects/shared_key.dart';
+import '../services/database/main.dart';
+import '../services/http/server.dart';
 
 class SharedKeyResponse {
   SharedKeyResponse({required this.key, required this.encryptedKey});
@@ -30,7 +28,7 @@ class UserWiseSharedKeyResponse {
 Future<SharedKeyResponse?> generateEncryptedSharedKey(
     final String otherUserPublicKey) async {
   final AuthController authController = Get.find<AuthController>();
-  final CurrentUser user = authController.authenticatedUser!;
+  final CurrentUserModel user = authController.authenticatedUser!;
   final String? privateKey = user.privateKey;
   final String publicKey = user.publicKey;
 
@@ -46,7 +44,7 @@ Future<SharedKeyResponse?> generateEncryptedSharedKey(
       await dh.calculateSharedKey(bobPublicKey: otherUserPublicKey);
 
   if (user.userKey == null) {
-    throw Exception('User key is null');
+    throw Exception('UserModel key is null');
   }
 
   return SharedKeyResponse(
@@ -57,21 +55,20 @@ Future<SharedKeyResponse?> generateEncryptedSharedKey(
 }
 
 Future<List<UserWiseSharedKeyResponse>> getSharedKeyWithOtherUsers(
-    final List<User> users,
+    final List<UserModel> users,
     {final bool force = false}) async {
-  final Box<SharedKeyHiveObject> sharedKeyBox =
-      Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
   final List<UserWiseSharedKeyResponse> sharedKeys =
       <UserWiseSharedKeyResponse>[];
-  List<User> remainingUsers = <User>[];
+  List<UserModel> remainingUsers = <UserModel>[];
 
   if (!force) {
-    await Future.wait(users.map((final User user) async {
-      final SharedKeyHiveObject? sharedKey = sharedKeyBox.get(user.id);
+    await Future.wait(users.map((final UserModel user) async {
+      final SharedKeyModel? sharedKey =
+          RealmService.sharedKeyModelService.getSharedKeyForUser(user.id);
       if (sharedKey != null) {
         sharedKeys.add(UserWiseSharedKeyResponse(
           userId: user.id,
-          sharedKey: sharedKey.sharedKey,
+          sharedKey: sharedKey.key,
         ));
       } else {
         remainingUsers.add(user);
@@ -81,29 +78,27 @@ Future<List<UserWiseSharedKeyResponse>> getSharedKeyWithOtherUsers(
     remainingUsers = users;
   }
 
-  final List<SharedKey> sharedKeysToSave = <SharedKey>[];
+  final List<SharedKeyModel> encryptedSharedKeysToSave = <SharedKeyModel>[];
+  final List<SharedKeyModel> sharedKeysToSave = <SharedKeyModel>[];
 
-  await Future.wait(remainingUsers.map((final User user) async {
+  await Future.wait(remainingUsers.map((final UserModel user) async {
     final SharedKeyResponse? encryptedSharedKey =
         await generateEncryptedSharedKey(user.publicKey);
     if (encryptedSharedKey == null) {
       log('Shared key is null');
       return;
     }
-    await sharedKeyBox.put(
-      user.id,
-      SharedKeyHiveObject(
-        sharedKey: encryptedSharedKey.key,
-        forUserId: user.id,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
-    sharedKeysToSave.add(SharedKey(
-      key: encryptedSharedKey.encryptedKey,
+    encryptedSharedKeysToSave.add(SharedKeyModel(
+      encryptedSharedKey.encryptedKey,
+      DateTime.now(),
+      DateTime.now(),
       forUserId: user.id,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+    ));
+    sharedKeysToSave.add(SharedKeyModel(
+      encryptedSharedKey.key,
+      DateTime.now(),
+      DateTime.now(),
+      forUserId: user.id,
     ));
     sharedKeys.add(UserWiseSharedKeyResponse(
       userId: user.id,
@@ -112,7 +107,10 @@ Future<List<UserWiseSharedKeyResponse>> getSharedKeyWithOtherUsers(
   }));
 
   if (sharedKeysToSave.isNotEmpty) {
-    await ServerApi.sharedKeyService.saveKeys(sharedKeysToSave);
+    await ServerApi.sharedKeyService.saveKeys(encryptedSharedKeysToSave);
+  }
+  if (!RealmService.sharedKeyModelService.addSharedKeys(sharedKeysToSave)) {
+    throw Exception('Failed to save shared keys');
   }
 
   return sharedKeys;

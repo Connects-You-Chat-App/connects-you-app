@@ -6,9 +6,7 @@ class DiffieHellman {
 
   static DiffieHellman? _instance;
 
-  factory DiffieHellman() {
-    return _instance ??= DiffieHellman._();
-  }
+  factory DiffieHellman() => _instance ??= DiffieHellman._();
 
   List<int>? _alicePublicKey;
   List<int>? _alicePrivateKey;

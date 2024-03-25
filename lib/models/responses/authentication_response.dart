@@ -1,4 +1,4 @@
-import '../common/current_user.dart';
+import '../objects/current_user.dart';
 
 enum AuthMethod {
   none,
@@ -22,19 +22,20 @@ class AuthenticationResponse {
           : method == AuthMethod.signup.name
               ? AuthMethod.signup
               : AuthMethod.none,
-      user: CurrentUser(
-        id: user['id'] as String,
-        name: user['name'] as String,
-        email: user['email'] as String,
+      user: CurrentUserModel(
+        user['id'] as String,
+        user['name'] as String,
+        user['email'] as String,
+        user['publicKey'] as String,
+        user['privateKey'] as String,
+        token,
+        '',
         photoUrl: user['photoUrl'] as String?,
         description: user['description'] as String?,
-        publicKey: user['publicKey'] as String,
-        privateKey: user['privateKey'] as String,
-        token: token,
       ),
     );
   }
 
   final AuthMethod method;
-  final CurrentUser user;
+  final CurrentUserModel user;
 }

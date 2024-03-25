@@ -2,14 +2,12 @@ import 'dart:developer';
 
 import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:get/get.dart' hide Response;
-import 'package:hive/hive.dart';
 
-import '../constants/hive_box_keys.dart';
 import '../models/base/notification.dart';
-import '../models/objects/shared_key_hive_object.dart';
 import '../models/requests/join_group_request.dart';
 import '../models/responses/main.dart';
-import '../service/server.dart';
+import '../services/database/main.dart';
+import '../services/http/server.dart';
 import '../utils/generate_shared_key.dart';
 import '../widgets/screens/home/screens/inbox/inbox_screen.dart';
 import 'home_controller.dart';
@@ -32,10 +30,9 @@ class NotificationsController extends GetxController {
 
   Future<void> joinGroup(final int index) async {
     final Notification notification = _notifications[index];
-    final Box<SharedKeyHiveObject> sharedKeyBox =
-        Hive.box<SharedKeyHiveObject>(HiveBoxKeys.SHARED_KEY);
-    String? sharedKeyWithSender =
-        sharedKeyBox.get(notification.senderUser.id)?.sharedKey;
+    String? sharedKeyWithSender = RealmService.sharedKeyModelService
+        .getSharedKeyForUser(notification.senderUser.id)
+        ?.key;
     if (sharedKeyWithSender == null) {
       final List<UserWiseSharedKeyResponse> value =
           await getSharedKeyWithOtherUsers([notification.senderUser],
@@ -49,8 +46,8 @@ class NotificationsController extends GetxController {
     final String roomSecretKey =
         await AesGcmEncryption(secretKey: sharedKeyWithSender)
             .decryptString(notification.encryptedRoomSecretKey);
-    final LazyBox<dynamic> commonBox = Hive.lazyBox(HiveBoxKeys.COMMON_BOX);
-    final String userKey = await commonBox.get('USER_KEY') as String;
+    final String userKey =
+        RealmService.currentUserModelService.getCurrentUser()!.userKey;
     final String selfEncryptedRoomSecretKey =
         await AesGcmEncryption(secretKey: userKey).encryptString(roomSecretKey);
 
@@ -62,7 +59,7 @@ class NotificationsController extends GetxController {
     _notifications.removeAt(index);
     final RoomsController inboxController = Get.find<RoomsController>();
     final HomeController homeController = Get.find<HomeController>();
-    await inboxController.fetchRooms(fromServer: true);
+    await inboxController.fetchRooms();
     homeController.navigate(InboxScreen.routeName);
   }
 

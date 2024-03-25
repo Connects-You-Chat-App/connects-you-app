@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart' hide Notification;
+import 'package:flutter_cryptography/aes_gcm_encryption.dart';
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import '../constants/socket_events.dart';
 import '../constants/url.dart';
-import '../models/base/message.dart';
 import '../models/base/notification.dart';
-import '../models/base/user.dart';
-import '../models/common/rooms_with_room_users.dart';
+import '../models/objects/room_with_room_users_and_messages.dart';
+import '../utils/generate_shared_key.dart';
 import 'auth_controller.dart';
 import 'notifications_controller.dart';
 import 'rooms_controller.dart';
@@ -88,7 +88,8 @@ class SocketController extends GetxController {
         (final dynamic data) => <void>{debugPrint(data.toString())});
     socket.on(SocketEvents.DUET_ROOM_CREATED, (final dynamic data) {
       Get.find<RoomsController>().addNewlyCreatedDuetRoom(
-          RoomWithRoomUsers.fromJson(data as Map<String, dynamic>));
+          RoomWithRoomUsersAndMessagesModel.fromJson(
+              data as Map<String, dynamic>));
     });
     socket.on(SocketEvents.GROUP_INVITATION, (final dynamic data) {
       Get.find<NotificationsController>()
@@ -97,42 +98,51 @@ class SocketController extends GetxController {
     socket.on(SocketEvents.GROUP_JOINED, (final dynamic data) {
       Get.find<RoomsController>().addUserToRoom(
           (data as Map<String, String>)['roomId']!,
-          User.fromJson((data as Map<String, Map<String, dynamic>>)['user']!));
+          UserModel.fromJson(
+              (data as Map<String, Map<String, dynamic>>)['user']!));
     });
     socket.on(SocketEvents.ROOM_MESSAGE, (final dynamic data) async {
-      final Message message = Message.fromJson(data as Map<String, dynamic>);
+      final MessageModel message =
+          MessageModel.fromJson(data as Map<String, dynamic>);
       print('ROOM_MESSAGE $data');
       if (Get.find<AuthController>().authenticatedUser?.id ==
-          message.senderUser.id) {
-        await Get.find<RoomsController>().updateMessageStatus(
-          message.roomId,
+          message.senderUser?.id) {
+        Get.find<RoomsController>().updateMessageStatusToSent(
           message.id,
-          MessageStatus.SENT,
         );
       } else {
+        final List<UserWiseSharedKeyResponse> sharedKey =
+            await getSharedKeyWithOtherUsers(
+                [UserModel.fromMessageUserModel(message.senderUser!)]);
+        message.message =
+            await AesGcmEncryption(secretKey: sharedKey.first.sharedKey)
+                .decryptString(message.message);
         await Get.find<RoomsController>().addMessageToRoom(message);
       }
     });
 
-    // TODO: add user list for status (like delivered to whom, and read by whom)
     socket.on(SocketEvents.ROOM_MESSAGE_DELIVERED, (final dynamic data) {
-      // TODO: Implement message delivered
-      print('ROOM_MESSAGE_DELIVERED $data');
-      // Get.find<RoomsController>().updateMessageStatus(
-      // Get.find<RoomController>().addMessageToRoom(
-      //     data['roomId'], Message.fromJson(data['message']));
+      final List<String> messageIds =
+          (data['messageIds'] as List<dynamic>).cast<String>();
+      final List<String> userIds =
+          (data['userIds'] as List<dynamic>).cast<String>();
+      print(data['date']);
+      Get.find<RoomsController>().updateMessageStatusToDelivered(
+        messageIds,
+        userIds,
+      );
     });
 
     socket.on(SocketEvents.ROOM_MESSAGE_READ, (final dynamic data) async {
-      final String userId = data['userId'] as String;
-      final String roomId = data['roomId'] as String;
       final List<String> messageIds =
           (data['messageIds'] as List<dynamic>).cast<String>();
-      print('ROOM_MESSAGE_READ $data');
-      await Get.find<RoomsController>()
-          .updateMessageStatuses(roomId, messageIds, MessageStatus.READ);
-      // Get.find<RoomController>().addMessageToRoom(
-      //     data['roomId'], Message.fromJson(data['message']));
+      final List<String> userIds =
+          (data['userIds'] as List<dynamic>).cast<String>();
+      print(data['date']);
+      Get.find<RoomsController>().updateMessageStatusToRead(
+        messageIds,
+        userIds,
+      );
     });
   }
 }

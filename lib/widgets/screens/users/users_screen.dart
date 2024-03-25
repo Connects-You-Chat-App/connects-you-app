@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../controllers/users_controller.dart';
-import '../../../models/base/user.dart';
+import '../../../models/objects/room_with_room_users_and_messages.dart';
 import 'user_row.dart';
 
 class UsersScreen extends GetView<UsersController> {
@@ -42,33 +42,43 @@ class UsersScreen extends GetView<UsersController> {
                             'Users',
                           ),
                 actions: <Widget>[
-                  if (!controller.showSearchBox && controller.selectedUsers.isEmpty) IconButton(
-                          icon: Icon(
-                            Icons.search_rounded,
-                            color: theme.primaryColor,
-                            size: 32,
-                          ),
-                          onPressed: () => controller.showSearchBox = true) else const SizedBox.shrink(),
-                  if (controller.selectedUsers.length > 1) IconButton(
-                          icon: Icon(
-                            Icons.group_add_rounded,
-                            color: theme.primaryColor,
-                            size: 32,
-                          ),
-                          onPressed: controller.createGroup,
-                        ) else const SizedBox.shrink(),
+                  if (!controller.showSearchBox &&
+                      controller.selectedUsers.isEmpty)
+                    IconButton(
+                        icon: Icon(
+                          Icons.search_rounded,
+                          color: theme.primaryColor,
+                          size: 32,
+                        ),
+                        onPressed: () => controller.showSearchBox = true)
+                  else
+                    const SizedBox.shrink(),
+                  if (controller.selectedUsers.length > 1)
+                    IconButton(
+                      icon: Icon(
+                        Icons.group_add_rounded,
+                        color: theme.primaryColor,
+                        size: 32,
+                      ),
+                      onPressed: controller.createGroup,
+                    )
+                  else
+                    const SizedBox.shrink(),
                   if (controller.selectedUsers.isNotEmpty ||
-                          controller.showSearchBox) IconButton(
-                          icon: Icon(
-                            Icons.close_rounded,
-                            color: theme.primaryColor,
-                            size: 32,
-                          ),
-                          onPressed: () {
-                            controller.selectedUsers.clear();
-                            controller.showSearchBox = false;
-                          },
-                        ) else const SizedBox.shrink(),
+                      controller.showSearchBox)
+                    IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: theme.primaryColor,
+                        size: 32,
+                      ),
+                      onPressed: () {
+                        controller.selectedUsers.clear();
+                        controller.showSearchBox = false;
+                      },
+                    )
+                  else
+                    const SizedBox.shrink(),
                 ],
               ),
               body: RefreshIndicator(
@@ -86,9 +96,10 @@ class UsersScreen extends GetView<UsersController> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 8, horizontal: 16),
                         itemCount: controller.users.length,
-                        separatorBuilder: (final _, final __) => const SizedBox(height: 8),
+                        separatorBuilder: (final _, final __) =>
+                            const SizedBox(height: 8),
                         itemBuilder: (final _, final int index) {
-                          final User user = controller.users[index];
+                          final UserModel user = controller.users[index];
                           final bool isSelected =
                               controller.selectedUsers.containsKey(user.id);
                           return UserRow(
@@ -102,14 +113,17 @@ class UsersScreen extends GetView<UsersController> {
               ),
             ),
           ),
-          if (controller.isCreatingRoom) SizedBox(
-                  height: mediaQuery.size.height,
-                  width: mediaQuery.size.width,
-                  child: CupertinoActivityIndicator(
-                    color: Get.theme.primaryColor,
-                    radius: 32,
-                  ),
-                ) else const SizedBox.shrink(),
+          if (controller.isCreatingRoom)
+            SizedBox(
+              height: mediaQuery.size.height,
+              width: mediaQuery.size.width,
+              child: CupertinoActivityIndicator(
+                color: Get.theme.primaryColor,
+                radius: 32,
+              ),
+            )
+          else
+            const SizedBox.shrink(),
         ],
       ),
     );

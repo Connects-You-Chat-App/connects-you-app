@@ -4,17 +4,19 @@ import 'package:gdrive/response.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../constants/hive_secure_storage_keys.dart';
 import '../constants/keys.dart';
+import '../constants/secure_storage_keys.dart';
 import '../controllers/auth_controller.dart';
-import 'secure_storage.dart';
+import '../services/database/main.dart';
 
 mixin GDriveOps {
-  static const String _userKeyFileName = 'key.txt';
+  static const String _userKeyFileName = 'key';
   static final AuthController _authController = Get.find<AuthController>();
 
-  static Future<dynamic> _getLocallyStoredSharedKeyFileId() {
-    return SecureStorage.read(key: HiveSecureStorageKeys.USER_KEY_FILE);
+  static String? _getLocallyStoredSharedKeyFileId() {
+    // return SecureStorage.read(key: HiveSecureStorageKeys.USER_KEY_FILE);
+    return RealmService.secureStorageModelService
+        .getValue()?[SecureStorageKeys.USER_KEY_FILE];
   }
 
   static Future<bool> _saveToDrive(final String fileContent,
@@ -32,7 +34,8 @@ mixin GDriveOps {
       final FileResponse<dynamic> response =
           await GDrive.getFileAndWriteFileContent(
               _userKeyFileName, fileContent, accessToken);
-      await SecureStorage.write(key: _userKeyFileName, value: response.fileId);
+      RealmService.secureStorageModelService
+          .addOrUpdateValue(_userKeyFileName, response.fileId);
       return true;
     } else {
       final FileResponse<dynamic> response = await GDrive.writeFileContent(
@@ -66,7 +69,8 @@ mixin GDriveOps {
     if (fileId == null) {
       final FileResponse<String> response =
           await GDrive.getFileAndReadFileContent(_userKeyFileName, accessToken);
-      await SecureStorage.write(key: _userKeyFileName, value: response.fileId);
+      RealmService.secureStorageModelService
+          .addOrUpdateValue(_userKeyFileName, response.fileId);
       encryptedUserKey = response.response;
     } else {
       encryptedUserKey = await GDrive.readFileContent(fileId, accessToken);

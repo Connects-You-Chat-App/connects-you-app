@@ -66,6 +66,7 @@ class _SplashScreenState extends State<SplashScreen>
     final ThemeData theme = Theme.of(context);
     final MediaQueryData mediaQuery = MediaQuery.of(context);
     return ScreenContainer(
+      showSocketConnection: false,
       child: Scaffold(
         backgroundColor: theme.colorScheme.background,
         body: Container(
